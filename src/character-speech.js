@@ -24,10 +24,26 @@ export function maliSpeechForFirstPerfect() {
   return 'Fit สมบูรณ์ครั้งแรก! คอมโบเริ่มสะสมแล้ว ปลูกให้เหมาะต่อเนื่องนะ'
 }
 
+export function maliSpeechForFirstCrab() {
+  return 'ปูก้ามดาบตัวแรก! อ่าวเริ่มมีชีวิตแล้ว เก็บไว้ในสมุดสัตว์นะ'
+}
+
+export function nonSpeechForClean() {
+  return 'ชายฝั่งโล่งขึ้นแล้ว — ขยะลดลง สัตว์กลับมาง่ายขึ้น'
+}
+
 export function nonSpeechForPatrol(eventTitle) {
   return eventTitle
     ? `แนวป้องกันพร้อมแล้ว — รอบถัดไปรับมือ ${eventTitle} ได้ดีขึ้น`
     : 'แนวป้องกันพร้อมแล้ว — พายุ/น้ำหนุนรอบถัดไปจะเบาลง'
+}
+
+export function nonSpeechForForecastPrep(eventTitle, damage) {
+  if (eventTitle && Number.isFinite(damage)) {
+    return `แนวป้องกันช่วยแล้ว — ${eventTitle} เสียหายน้อยลง (เหลือ −${damage})`
+  }
+  if (eventTitle) return `แนวป้องกันช่วยแล้ว — ${eventTitle} ส่งผลน้อยลง`
+  return 'แนวป้องกันช่วยแล้ว — ความเสียหายจากเหตุการณ์ลดลง'
 }
 
 export function ingSpeechForSurvey() {

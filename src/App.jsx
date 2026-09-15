@@ -7,7 +7,7 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
-import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, nonSpeechForPatrol, ingSpeechForSurvey } from './character-speech.js'
+import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey } from './character-speech.js'
 
 const SPEAKER_LABELS = { mali: 'มะลิ', non: 'นนท์', ing: 'อิง' }
 
@@ -158,9 +158,16 @@ function App() {
   useEffect(() => {
     const next = settleRestoration(discoverWildlife(game))
     if (next === game) return
-    const names = WILDLIFE.filter((animal) => next.journey.discovered.includes(animal.id) && !game.journey.discovered.includes(animal.id)).map((animal) => animal.name)
+    const newly = WILDLIFE.filter((animal) => next.journey.discovered.includes(animal.id) && !game.journey.discovered.includes(animal.id))
+    const names = newly.map((animal) => animal.name)
+    const foundCrab = newly.some((animal) => animal.id === 'crab')
     setGame((current) => settleRestoration(discoverWildlife(current)))
-    setNotice(names.length ? `ค้นพบ ${names.join(' · ')}! รับทุนสำรวจ +${next.coins - game.coins} เหรียญ` : '✦ ความสำเร็จใหม่! เปิดแผนภาคสนามเพื่อดูสมุดสะสม')
+    if (foundCrab) {
+      setCharacterSpeech(createSpeech('mali', maliSpeechForFirstCrab(), 'first-crab'))
+      setNotice(`🦀 ค้นพบปูก้ามดาบครั้งแรก! ทุนสำรวจ +${next.coins - game.coins} เหรียญ`)
+    } else {
+      setNotice(names.length ? `ค้นพบ ${names.join(' · ')}! รับทุนสำรวจ +${next.coins - game.coins} เหรียญ` : '✦ ความสำเร็จใหม่! เปิดแผนภาคสนามเพื่อดูสมุดสะสม')
+    }
   }, [game])
 
   const selected = game.plots.find((plot) => plot.id === selectedPlot) || null
@@ -463,9 +470,18 @@ function App() {
       }
 
       next = reconcileDeaths(current, next)
+      const hadForecastPrep = ['storm', 'kingtide'].includes(event.id) && current.expedition.protectionDay === current.day
       if (['storm', 'kingtide'].includes(event.id)) next.expedition = { ...next.expedition, protectionDay: 0 }
       next.journey = { ...next.journey, xp: next.journey.xp + 20 }
-      setNotice(text)
+      if (hadForecastPrep) {
+        const shown = event.id === 'storm'
+          ? stormDamage(current, choiceKey === 'protect', 15)
+          : stormDamage(current, choiceKey === 'reinforce', 8)
+        setCharacterSpeech(createSpeech('non', nonSpeechForForecastPrep(event.title, shown), 'forecast-prep'))
+        setNotice(`${text} · ✓ แนวป้องกันที่เตรียมไว้ช่วยลดความเสียหาย`)
+      } else {
+        setNotice(text)
+      }
       return appendLog(next, text, 'event')
     })
   }
@@ -483,6 +499,9 @@ function App() {
         : `${rule.name}สำเร็จ · ${rule.hint}`)
     } else if (key === 'survey') {
       speakCharacter('ing', ingSpeechForSurvey(), 'survey')
+      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+    } else if (key === 'clean') {
+      speakCharacter('non', nonSpeechForClean(), 'cleanup')
       setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
     } else if (key === 'care') {
       speakMali(maliSpeechForCrewCare(), 'crew-care')

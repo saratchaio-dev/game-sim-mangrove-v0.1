@@ -7,7 +7,10 @@ import {
   maliSpeechForPlotCare,
   maliSpeechForFirstContract,
   maliSpeechForFirstPerfect,
+  maliSpeechForFirstCrab,
+  nonSpeechForClean,
   nonSpeechForPatrol,
+  nonSpeechForForecastPrep,
   ingSpeechForSurvey,
   createSpeech,
 } from '../src/character-speech.js'
@@ -45,6 +48,23 @@ test('Non patrol line includes event title when provided', () => {
 
 test('Ing survey line is a fixed Thai string', () => {
   assert.equal(ingSpeechForSurvey(), 'บันทึกถิ่นอาศัยแล้ว — ความหลากหลายของอ่าวชัดขึ้น')
+})
+
+
+test('Non cleanup and forecast-prep lines are fixed Thai strings', () => {
+  assert.equal(nonSpeechForClean(), 'ชายฝั่งโล่งขึ้นแล้ว — ขยะลดลง สัตว์กลับมาง่ายขึ้น')
+  assert.equal(
+    nonSpeechForForecastPrep('มรสุมกำลังเข้า', 7),
+    'แนวป้องกันช่วยแล้ว — มรสุมกำลังเข้า เสียหายน้อยลง (เหลือ −7)',
+  )
+  assert.equal(
+    nonSpeechForForecastPrep(),
+    'แนวป้องกันช่วยแล้ว — ความเสียหายจากเหตุการณ์ลดลง',
+  )
+})
+
+test('first crab Mali celebration line is a fixed Thai string', () => {
+  assert.equal(maliSpeechForFirstCrab(), 'ปูก้ามดาบตัวแรก! อ่าวเริ่มมีชีวิตแล้ว เก็บไว้ในสมุดสัตว์นะ')
 })
 
 test('createSpeech returns plain ephemeral data with no save coupling', () => {
