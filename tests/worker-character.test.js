@@ -35,3 +35,10 @@ test('worker primitives return no raycast intersections and variants are bounded
   assert.equal(new Set(workerVariants.map(v=>v.hairStyle)).size,3)
   workerVariants.forEach(v=>{assert.ok(v.accent&&v.gear);assert.ok(v.width>.8&&v.width<1.2);assert.ok(v.height>.8&&v.height<1.2)})
 })
+
+test('care maps to Mali maintain pose name; plant stays plant (never a care pose)', () => {
+  assert.deepEqual(workerTask({ type: 'care', plotId: 3 }), { state: 'maintain', worker: 0, plotId: 3 })
+  assert.deepEqual(workerTask({ type: 'plant', plotId: 3 }), { state: 'plant', worker: 0, plotId: 3 })
+  assert.equal(workerVariants[0].id, 'mali')
+  assert.notEqual(workerTask({ type: 'care', plotId: 1 }).state, 'care')
+})

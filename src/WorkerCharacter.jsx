@@ -9,7 +9,7 @@ import { useMotionBudget } from './useMotionBudget.js'
 const JOINT_KEYS = ['leftArm','rightArm','leftElbow','rightElbow','leftHip','rightHip','leftKnee','rightKnee']
 
 const labels={plant:'ปลูกต้นกล้า',cleanup:'เก็บและเตรียมพื้นที่',inspect:'สำรวจถิ่นอาศัย',maintain:'ดูแลต้นไม้',mrv:'ตรวจ MRV'}
-export default function WorkerCharacter({ variant:v, index, action, target }) {
+export default function WorkerCharacter({ variant:v, index, action, target, speech=null }) {
   const label=useRef()
   const root=useRef(), body=useRef(), head=useRef(), joints=useRef({}), props=useRef({})
   const clock=useRef(index*4), assignment=useRef(null), lastAction=useRef(null), pose=useRef(workerPose('idle',0))
@@ -125,5 +125,10 @@ export default function WorkerCharacter({ variant:v, index, action, target }) {
       </group>})}
     </group>
     {relevant&&<Html center position={[0,2,0]} zIndexRange={[2,1]} style={{pointerEvents:'none'}}><div ref={label} className="character-name"><b>{v.name} · {labels[task.state]}</b></div></Html>}
+    {v.id==='mali' && speech?.speaker==='mali' && speech?.text && (
+      <Html center position={[0,2.45,0]} zIndexRange={[3,2]} style={{pointerEvents:'none'}}>
+        <div className="character-speech-bubble" data-character-speech="mali">{speech.text}</div>
+      </Html>
+    )}
   </group>
 }

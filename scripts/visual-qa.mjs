@@ -62,6 +62,64 @@ async function selectPlot(page,id) {
   await page.getByRole('button',{name:'เปิดแผนที่แปลง',exact:true}).click()
   await page.locator('.plot-picker button').nth(id-1).click()
 }
+async function toastStatus(page) {
+  assert.equal(await page.locator('.notice-toast').getAttribute('role'), 'status')
+}
+async function maliSpeechText(page) {
+  return page.evaluate(() => {
+    const fromDiag = window.__coastDiagnostics()?.maliSpeech
+    if (typeof fromDiag === 'string' && fromDiag.trim()) return fromDiag.trim()
+    const el = document.querySelector('[data-character-speech="mali"], .mali-speech, [data-mali-speech]')
+    const text = el?.textContent?.replace(/\s+/g, ' ').trim() || ''
+    if (!text) return null
+    if (/มะลิ|ปลูก|ดูแล|บำรุง|plant|care|maintain/i.test(text)) return text
+    return null
+  })
+}
+async function waitMaliSpeech(page) {
+  await page.waitForFunction(() => {
+    const fromDiag = window.__coastDiagnostics()?.maliSpeech
+    if (typeof fromDiag === 'string' && fromDiag.trim()) return true
+    const el = document.querySelector('[data-character-speech="mali"], .mali-speech, [data-mali-speech]')
+    const text = el?.textContent?.replace(/\s+/g, ' ').trim() || ''
+    return /มะลิ|ปลูก|ดูแล|บำรุง|plant|care|maintain/i.test(text)
+  }, null, { timeout: 45000 })
+  return maliSpeechText(page)
+}
+async function assertNoSpeechSaveKeys(page) {
+  const keys = await page.evaluate(() => Object.keys(localStorage))
+  assert.ok(keys.includes('mangrove-bay-3d-save-v2'), 'canonical save key must remain')
+  assert.ok(!keys.some((key) => /speech|mali-speech|ephemeral-speech|plant-care-speech/i.test(key)),
+    `speech must not introduce a new save key; got ${keys.join(',')}`)
+  const save = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), saveKey)
+  for (const banned of ['maliSpeech', 'speech', 'particleRoot', 'particles', 'shoreCue', 'worldAction']) {
+    assert.ok(!(banned in save), `${banned} must not persist in the save blob`)
+  }
+}
+async function waitWorldAction(page, type) {
+  await page.waitForFunction((wanted) => window.__coastDiagnostics()?.worldAction?.type === wanted, type, { timeout: 15000 })
+}
+async function waitParticleCycle(page) {
+  await page.waitForFunction(() => {
+    const value = window.__coastDiagnostics()?.particleRoot
+    return value === true || value?.mounted === true
+  }, null, { timeout: 20000 })
+  await page.waitForFunction(() => {
+    const value = window.__coastDiagnostics()?.particleRoot
+    return value === false || value == null || value?.mounted === false
+  }, null, { timeout: 30000 })
+}
+async function assertShoreCue(page, { expectActive }) {
+  const shoreCue = await page.evaluate(() => window.__coastDiagnostics()?.shoreCue ?? null)
+  if (expectActive) {
+    assert.ok(shoreCue && (shoreCue.active === true || shoreCue.source === 'plant' || shoreCue === true),
+      `plant beat must expose shoreCue; got ${JSON.stringify(shoreCue)}`)
+  } else {
+    assert.ok(!shoreCue || shoreCue.active === false || shoreCue === null,
+      `care beat must not touch wildlife shoreCue; got ${JSON.stringify(shoreCue)}`)
+  }
+}
+
 try {
   const page=await open({width:1440,height:900})
   await shot(page,'desktop-initial')
@@ -97,7 +155,25 @@ try {
   await shot(page,'desktop-plot-preview')
   await page.locator('.confirm-plant').click()
   assert.equal((await state(page)).plots[4].species,'rhizophora')
+  // Plant/care on-scene beat — Gameplay/Visual prerequisites on __coastDiagnostics()
+  // (merged from window.__coastBeat, plus named scene roots):
+  //   worldAction: { type:'plant'|'care', plotId?, id? } | null  (App mirrors under ?qa=1)
+  //   particleRoot: boolean | { mounted:boolean }  // true while beat FX root is mounted
+  //   shoreCue: { active:true, source:'plant' } | null | true  // ONLY during plant beat
+  //   maliSpeech: string | null  // optional; DOM [data-character-speech=mali] also accepted
+//   particle scene roots: action-fx-plant | action-fx-care (Visual)
+//   wildlife userData.shoreCue after plant only
+  // Pose names: actors[].state|task must be plant | maintain (care → maintain via workerTask).
+  await waitWorldAction(page, 'plant')
+  assert.equal((await page.evaluate(() => window.__coastDiagnostics().worldAction.type)), 'plant')
+  await toastStatus(page)
+  const plantSpeech = await waitMaliSpeech(page)
+  assert.ok(plantSpeech, 'Mali ephemeral speech must appear after plant')
+  await assertNoSpeechSaveKeys(page)
   await workerState(page,0,'plant')
+  await waitParticleCycle(page)
+  await assertShoreCue(page, { expectActive: true })
+  check('plant on-scene beat: worldAction, toast status, Mali speech, plant pose, particles, shore cue')
   // Plant the rest through the keyboard-accessible map.
   await page.locator('.species-tool').nth(2).click()
   await selectPlot(page,1); await page.locator('.confirm-plant').click()
@@ -109,8 +185,23 @@ try {
   check('canvas preview, three species, mission reward and restoration delivery work together')
   await page.getByRole('button',{name:'เปิดแผนภาคสนาม',exact:true}).click()
   await page.locator('[data-crew="care"]').click()
+  await waitWorldAction(page, 'care')
+  assert.equal((await page.evaluate(() => window.__coastDiagnostics().worldAction.type)), 'care')
+  await toastStatus(page)
+  await assertShoreCue(page, { expectActive: false })
   await page.getByRole('button',{name:'ปิดแผนภาคสนาม',exact:true}).click()
+  const careSpeech = await waitMaliSpeech(page)
+  assert.ok(careSpeech, 'Mali ephemeral speech must appear after care')
+  await assertNoSpeechSaveKeys(page)
   await workerState(page,0,'maintain')
+  // Pose must be maintain, never a literal "care" pose name on Mali.
+  const mali = await page.evaluate(() => window.__coastDiagnostics().actors.find((a) => a.name === 'crew-0'))
+  assert.ok(mali.state === 'maintain' || mali.task === 'maintain')
+  assert.notEqual(mali.state, 'care')
+  assert.notEqual(mali.task, 'care')
+  await waitParticleCycle(page)
+  await assertShoreCue(page, { expectActive: false })
+  check('care on-scene beat: worldAction care, toast status, Mali speech, maintain pose, particles, no shore cue')
   // Selection details must remain usable at tablet width.
   await selectPlot(page,4)
   const funds=(await state(page)).coins
@@ -119,7 +210,12 @@ try {
   assert.equal((await state(page)).plots[3].prepared,true)
   await page.reload();await page.waitForFunction(()=>window.__coastDiagnostics)
   assert.equal((await state(page)).plots[3].prepared,true)
+  await page.waitForFunction(() => window.__coastDiagnostics?.().actors.length >= 4)
+  assert.equal(await maliSpeechText(page), null, 'reload must drop ephemeral Mali speech')
+  assert.equal(await page.evaluate(() => window.__coastDiagnostics()?.maliSpeech ?? null), null)
+  await assertNoSpeechSaveKeys(page)
   check('soil improvement and contract completion survive reload')
+  check('Mali speech is ephemeral: absent after reload and never stored under a new save key')
 
   for(let i=0;i<6;i++) await endDay(page)
   assert.equal((await state(page)).day,7)

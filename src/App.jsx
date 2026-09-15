@@ -7,6 +7,7 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
+import { SPEECH_MS, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare } from './character-speech.js'
 
 const SAVE_KEY = 'mangrove-bay-3d-save-v2'
 
@@ -50,6 +51,7 @@ function App() {
   const [saveError, setSaveError] = useState(false)
   const [dayReport, setDayReport] = useState(null)
   const [worldAction, setWorldAction] = useState(null)
+  const [characterSpeech, setCharacterSpeech] = useState(null)
   const audioRef = useRef(null)
   const rank = rankFor(game.journey.xp)
   const mission = missionFor(game)
@@ -93,6 +95,31 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(game)); setSaveError(false) } catch { setSaveError(true) }
   }, [game])
+
+  useEffect(() => {
+    if (!characterSpeech) return undefined
+    const timer = setTimeout(() => setCharacterSpeech(null), SPEECH_MS)
+    return () => clearTimeout(timer)
+  }, [characterSpeech])
+
+  const speakMali = (text, actionId) => {
+    setCharacterSpeech({ speaker: 'mali', text, actionId, id: String(actionId) })
+  }
+
+  // QA observability only: mirror worldAction into the beat bag read by __coastDiagnostics.
+  useEffect(() => {
+    if (!(import.meta.env.DEV || import.meta.env.VITE_WORLD_QA === '1')) return
+    if (!new URLSearchParams(location.search).has('qa')) return
+    const prev = window.__coastBeat || {}
+    window.__coastBeat = { ...prev, worldAction }
+    return () => {
+      if (!window.__coastBeat) return
+      if (window.__coastBeat.worldAction !== worldAction) return
+      const { worldAction: _drop, ...rest } = window.__coastBeat
+      if (Object.keys(rest).length) window.__coastBeat = rest
+      else delete window.__coastBeat
+    }
+  }, [worldAction])
 
   const derived = useMemo(() => {
     const planted = game.plots.filter((plot) => plot.species)
@@ -185,6 +212,7 @@ function App() {
       }
       next = rewardPlant(next, fit)
       setWorldAction({ type: 'plant', plotId, id: current.stats.planted + 1 })
+      speakMali(maliSpeechForPlant(fit), 'plant')
       next = appendLog(next, `ปลูก${species.short}ในแปลง ${plotId} · ความเหมาะสม ${fit}/2`, 'plant')
       setNotice(fit === 2 ? `ปลูกได้เหมาะมาก! คอมโบ ×${next.journey.combo} · คืนทุน +${next.journey.combo * 4} ● · +16 XP` : `${species.name} · Fit ${fit}/2 · ลองเลือกพันธุ์ให้ตรงน้ำและดินเพื่อรับคอมโบ`)
       return next
@@ -223,6 +251,7 @@ function App() {
           : plot),
       }
       setWorldAction({ type: 'care', plotId: selected.id, id: `care-${current.day}-${selected.id}-${target.health}` })
+      speakMali(maliSpeechForPlotCare(), 'plot-care')
       setNotice(`บำรุงแปลง ${selected.id} แล้ว · สุขภาพ +20`)
       return appendLog(next, `ทีมภาคสนามบำรุงแปลง ${selected.id}`, 'care')
     })
@@ -441,6 +470,7 @@ function App() {
     if (!rule.ok) return
     setGame((current) => { const next = crewAction(current, key); return next === current ? current : appendLog(next, `ภาคสนาม: ${rule.name} · ${rule.hint}`, 'care') })
     setWorldAction({ type: key, plotId: key === 'care' ? game.plots.filter((p) => p.species && !p.dead).sort((a,b) => a.health - b.health)[0]?.id : null, id: `${game.day}-${key}` })
+    if (key === 'care') speakMali(maliSpeechForCrewCare(), 'crew-care')
     setNotice(`${rule.name}สำเร็จ · ${rule.hint}`); playChime()
   }
   const handleContractClaim = () => {
@@ -471,6 +501,7 @@ function App() {
         cameraReset={cameraReset}
         habitat={habitat}
         action={worldAction}
+        speech={characterSpeech}
         clean={game.day - game.expedition.cleanDay < 2 && game.expedition.cleanDay > 0}
         protection={game.expedition.protectionDay >= game.day}
         weather={game.event?.id}
@@ -646,6 +677,11 @@ function App() {
         </nav>
 
         <div className="notice-toast" role="status"><span>✦</span>{notice}</div>
+        {characterSpeech && (
+          <div className="character-speech" role="status" data-character-speech={characterSpeech.speaker} data-speech-action={characterSpeech.actionId}>
+            <b>มะลิ</b><span>{characterSpeech.text}</span>
+          </div>
+        )}
         {saveError && <div className="save-warning" role="alert">บันทึกอัตโนมัติไม่ได้ · อย่าปิดหน้านี้ ความคืบหน้าอาจสูญหาย</div>}
         <div className="camera-tip">ลากฉากเพื่อหมุน · เลื่อนเมาส์เพื่อซูม · คลิกแปลงเพื่อดู Fit ก่อนปลูก</div>
       </div>
