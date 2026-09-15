@@ -27,6 +27,9 @@ async function open(viewport) {
   await page.addInitScript(() => localStorage.setItem('mangrove-bay-3d-help-seen','1'))
   await page.goto(`${process.env.QA_URL || 'http://127.0.0.1:5173'}/?qa=1`)
   await page.waitForFunction(() => window.__coastDiagnostics?.().actors.length >= 4)
+  const lighting0 = await assertLighting(page)
+  assert.ok(['day', 'golden', 'storm'].includes(lighting0.preset))
+  check('mood lighting publishes lighting.preset/sky/fog/tideOffset on diagnostics')
   await page.evaluate(() => document.fonts.ready)
   return page
 }
@@ -96,6 +99,17 @@ async function assertNoSpeechSaveKeys(page) {
     assert.ok(!(banned in save), `${banned} must not persist in the save blob`)
   }
 }
+
+async function assertLighting(page, { preset, tideOffset } = {}) {
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.lighting?.preset, null, { timeout: 15000 })
+  const lighting = await page.evaluate(() => window.__coastDiagnostics().lighting)
+  if (preset) assert.equal(lighting.preset, preset, `lighting.preset should be ${preset}`)
+  assert.ok(lighting.sky && lighting.fog, 'lighting.sky/fog must be present')
+  assert.equal(lighting.sky, lighting.fog, 'fog/sky should share the mood color on this pass')
+  if (tideOffset != null) assert.equal(lighting.tideOffset, tideOffset)
+  return lighting
+}
+
 async function waitWorldAction(page, type) {
   await page.waitForFunction((wanted) => window.__coastDiagnostics()?.worldAction?.type === wanted, type, { timeout: 15000 })
 }
@@ -285,7 +299,10 @@ try {
   // Recorded forecast changes the scene and the actual decision.
   await page.evaluate((key)=>{const g=JSON.parse(localStorage.getItem(key));g.day=25;g.event={id:'storm'};localStorage.setItem(key,JSON.stringify(g))},saveKey)
   await page.reload();await page.waitForSelector('.event-modal')
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.lighting?.preset)
   await shot(page,'desktop-storm')
+  await assertLighting(page, { preset: 'storm' })
+  check('storm weather maps to lighting.preset storm with matching sky/fog')
   await page.locator('.choice-list button').last().click()
   assert.equal((await state(page)).event,null)
   check('a saved weather event rehydrates and resolves')
