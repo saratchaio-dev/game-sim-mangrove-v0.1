@@ -7,7 +7,8 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
-import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey, ingSpeechForWildlifeDrip, nonSpeechForWildlifeDrip } from './character-speech.js'
+import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, maliSpeechForStreak, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey, ingSpeechForWildlifeDrip, nonSpeechForWildlifeDrip } from './character-speech.js'
+import { streakTheaterFor } from './streak-theater.js'
 import { cliffhangerFor } from './dawn-cliffhanger.js'
 import { DRIP_ACTIONS, tryWildlifeDrip } from './wildlife-drip.js'
 
@@ -58,6 +59,7 @@ function App() {
   const [worldAction, setWorldAction] = useState(null)
   const [characterSpeech, setCharacterSpeech] = useState(null)
   const [highlightWildlife, setHighlightWildlife] = useState(null)
+  const [streakBanner, setStreakBanner] = useState(null)
   const audioRef = useRef(null)
   const rank = rankFor(game.journey.xp)
   const mission = missionFor(game)
@@ -119,6 +121,12 @@ function App() {
     const timer = setTimeout(() => setHighlightWildlife(null), 4500)
     return () => clearTimeout(timer)
   }, [highlightWildlife])
+
+  useEffect(() => {
+    if (!streakBanner) return undefined
+    const timer = setTimeout(() => setStreakBanner(null), 3200)
+    return () => clearTimeout(timer)
+  }, [streakBanner])
 
   const speakCharacter = (speaker, text, actionId) => {
     setCharacterSpeech(createSpeech(speaker, text, actionId))
@@ -592,8 +600,16 @@ function App() {
   const handleContractClaim = () => {
     const c = contractProgress(game)
     if (!c?.ready || game.event) return
+    const newStreak = game.expedition.streak + 1
+    const bestUpdated = newStreak > game.expedition.bestStreak
+    const theater = streakTheaterFor(newStreak, { bestUpdated })
     setGame((current) => claimContract(current))
-    setNotice(`ส่งมอบงานสำเร็จ · +${c.coins + c.bonus} เหรียญ · +${c.xp} XP`); playChime()
+    const rewardNotice = `ส่งมอบงานสำเร็จ · +${c.coins + c.bonus} เหรียญ · +${c.xp} XP`
+    setNotice(theater.toastExtra ? `${rewardNotice} · ${theater.toastExtra}` : rewardNotice)
+    if (theater.speak) speakMali(maliSpeechForStreak(newStreak, bestUpdated), 'streak-theater')
+    setWorldAction({ type: 'streak-theater', streak: newStreak, id: `streak-${game.day}-${newStreak}` })
+    if (newStreak >= 2) setStreakBanner({ streak: newStreak, text: theater.toastExtra })
+    playChime()
   }
   const resetGame = () => {
     const fresh = createInitialGame()
@@ -602,6 +618,7 @@ function App() {
     setSandbox(false)
     setDayReport(null)
     setWorldAction(null)
+    setStreakBanner(null)
     setCameraReset((v) => v + 1)
     setNotice('เริ่มโครงการใหม่แล้ว · เลือกพันธุ์และคลิกพื้นที่ 3D')
   }
@@ -612,7 +629,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}
@@ -803,6 +820,11 @@ function App() {
         </nav>
 
         <div className="notice-toast" role="status"><span>✦</span>{notice}</div>
+        {streakBanner && (
+          <div className="streak-theater-banner" role="status" data-streak-theater={streakBanner.streak}>
+            {streakBanner.text}
+          </div>
+        )}
         {characterSpeech && (
           <div className="character-speech" role="status" data-character-speech={characterSpeech.speaker} data-speech-action={characterSpeech.actionId}>
             <b>{SPEAKER_LABELS[characterSpeech.speaker] || characterSpeech.speaker}</b><span>{characterSpeech.text}</span>

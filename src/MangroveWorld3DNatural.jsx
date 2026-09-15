@@ -480,22 +480,98 @@ function DiscoverSpark({ seed = 0, tint = '#ffe56a' }) {
   )
 }
 
+
+function StreakTheaterFx({ streak = 2, seed = 0 }) {
+  const group = useRef()
+  const glow = useRef()
+  const elapsed = useRef(0)
+  const tier = streak >= 4 ? 3 : streak >= 3 ? 2 : 1
+  const tint = tier === 3 ? '#ffd36a' : tier === 2 ? '#ffe9a0' : '#fff4c8'
+  const count = 10 + tier * 6
+  const particles = useMemo(() => (
+    Array.from({ length: count }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / count + pseudo(seed * 2.7 + index) * 0.4
+      const radius = 0.9 + pseudo(seed + index) * (1.1 + tier * 0.35)
+      return {
+        x: Math.cos(angle) * radius,
+        z: Math.sin(angle) * radius,
+        lift: 1.1 + pseudo(seed * 3 + index) * (1.2 + tier * 0.4),
+        spin: (pseudo(seed * 5 + index) - 0.5) * 2.4,
+        color: index % 3 ? tint : '#ffffff',
+      }
+    })
+  ), [count, seed, tier, tint])
+
+  useFrame((_, delta) => {
+    if (!group.current || elapsed.current >= 1.8) return
+    elapsed.current += delta
+    const progress = Math.min(1, elapsed.current / 1.8)
+    const fade = progress < 0.2 ? progress / 0.2 : Math.max(0, 1 - (progress - 0.2) / 0.8)
+    group.current.visible = progress < 1
+    if (glow.current) {
+      glow.current.material.opacity = 0.18 * tier * fade
+      glow.current.scale.setScalar(1.2 + progress * (1.4 + tier * 0.25))
+    }
+    group.current.children.forEach((child, index) => {
+      if (index === 0) return
+      const particle = particles[index - 1]
+      if (!particle) return
+      child.position.set(
+        particle.x * (0.35 + progress * 0.9),
+        0.35 + progress * particle.lift,
+        particle.z * (0.35 + progress * 0.9),
+      )
+      child.rotation.y += delta * particle.spin
+      child.scale.setScalar(0.45 + Math.sin(progress * Math.PI) * (0.7 + tier * 0.15))
+      child.material.opacity = Math.max(0, fade)
+    })
+  })
+
+  return (
+    <group ref={group} position={[0, 0.2, 0]}>
+      <mesh ref={glow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+        <circleGeometry args={[1.8, 28]} />
+        <meshBasicMaterial color={tint} transparent opacity={0.28} depthWrite={false} />
+      </mesh>
+      {particles.map((particle, index) => (
+        <mesh key={index}>
+          <octahedronGeometry args={[0.09, 0]} />
+          <meshBasicMaterial color={particle.color} transparent opacity={1} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function ActionSceneBeat({ action }) {
   const [live, setLive] = useState(null)
 
   useEffect(() => {
     if (!action?.type) return
-    if (action.type !== 'plant' && action.type !== 'care' && action.type !== 'wildlife-drip') return
-    if (!action.plotId && action.type !== 'wildlife-drip') return
+    if (action.type !== 'plant' && action.type !== 'care' && action.type !== 'wildlife-drip' && action.type !== 'streak-theater') return
+    if (!action.plotId && action.type !== 'wildlife-drip' && action.type !== 'streak-theater') return
     setLive(action)
-    const ms = action.type === 'plant' ? 1450 : action.type === 'wildlife-drip' ? 1400 : 1000
+    const ms = action.type === 'plant' ? 1450 : action.type === 'wildlife-drip' ? 1400 : action.type === 'streak-theater' ? 1800 : 1000
     const timer = setTimeout(() => {
       setLive((current) => (current?.id === action.id ? null : current))
     }, ms)
     return () => clearTimeout(timer)
-  }, [action?.id, action?.type, action?.plotId, action?.animalId])
+  }, [action?.id, action?.type, action?.plotId, action?.animalId, action?.streak])
 
   if (!live?.type) return null
+  if (live.type === 'streak-theater') {
+    const streak = Number(live.streak) || 2
+    const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.55, -5.5]
+    return (
+      <group
+        name="streak-theater-fx"
+        position={pos}
+        userData={{ actionFx: 'streak-theater', streak, actionId: live.id }}
+      >
+        <StreakTheaterFx streak={streak} seed={String(live.id || streak).length + streak} />
+      </group>
+    )
+  }
   if (live.type === 'wildlife-drip') {
     const tint = ({ crab: '#ff8d70', fish: '#65d7e8', bird: '#f8f4dd', firefly: '#ffe56a' })[live.animalId] || '#ffe56a'
     const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.5, -6]

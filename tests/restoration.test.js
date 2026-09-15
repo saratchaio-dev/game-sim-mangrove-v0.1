@@ -179,3 +179,20 @@ test('a fresh game can complete a planting contract and grow into survey unlock 
   assert.equal(crewRule(g,'survey').ok,true)
   assert.ok(g.coins>500)
 })
+
+test('contract streak bonus stays min(45, streak*15) and claim does not alter the formula', () => {
+  let g = createInitialGame()
+  g.expedition.streak = 0
+  g = acceptContract(g, 'cleanup')
+  assert.equal(contractProgress(g).bonus, 0)
+  g.expedition.streak = 1
+  assert.equal(contractProgress(g).bonus, 15)
+  g.expedition.streak = 2
+  assert.equal(contractProgress(g).bonus, 30)
+  g.expedition.streak = 3
+  assert.equal(contractProgress(g).bonus, 45)
+  g.expedition.streak = 4
+  assert.equal(contractProgress(g).bonus, 45)
+  g.expedition.streak = 9
+  assert.equal(contractProgress(g).bonus, Math.min(45, g.expedition.streak * 15))
+})
