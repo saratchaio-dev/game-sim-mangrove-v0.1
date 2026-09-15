@@ -34,3 +34,13 @@ test('streak theater does not regress drip, plant/care, or bird heading', () => 
   assert.match(bird, /Math\.atan2\(vx, vz\) - Math\.PI \/ 2/)
   assert.doesNotMatch(bird, /rotation\.y = -t \+ Math\.PI \/ 2/)
 })
+
+test('Gameplay claim wires streak-theater worldAction, Mali speech, and banner', () => {
+  assert.match(app, /streakTheaterFor\(newStreak/)
+  assert.match(app, /type: 'streak-theater'/)
+  assert.match(app, /speakMali\(maliSpeechForStreak\(newStreak/)
+  assert.match(app, /streak-theater-banner/)
+  assert.match(app, /role="status"/)
+  // claimContract still applies rewards — theater is presentation only around it
+  assert.match(app, /setGame\(\(current\) => claimContract\(current\)\)/)
+})
