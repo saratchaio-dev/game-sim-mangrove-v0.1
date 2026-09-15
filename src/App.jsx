@@ -45,6 +45,7 @@ function App() {
   const [showJournal, setShowJournal] = useState(false)
   const [showPlots, setShowPlots] = useState(false)
   const [showEconomy, setShowEconomy] = useState(false)
+  const [showBrief, setShowBrief] = useState(false)
   const [showRestoration, setShowRestoration] = useState(false)
   const [showDayPlan, setShowDayPlan] = useState(false)
   const [photoMode, setPhotoMode] = useState(false)
@@ -88,7 +89,7 @@ function App() {
     const onKey = (event) => {
       if (event.key !== 'Escape') return
       setPhotoMode(false); setShowPlots(false); setShowJournal(false); setShowRestoration(false); setShowDayPlan(false)
-      setShowEconomy(false); setShowGoals(false); setShowUpgrades(false); setShowLog(false)
+      setShowEconomy(false); setShowBrief(false); setShowGoals(false); setShowUpgrades(false); setShowLog(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -515,7 +516,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}`}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''} ${showBrief ? 'brief-open' : ''} ${showEconomy ? 'economy-open' : ''}`}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}
@@ -561,7 +562,8 @@ function App() {
           </div>
         </header>
 
-        <aside className="left-stack">
+        <aside className={`left-stack ${showBrief ? 'brief-open' : ''}`} data-mobile-panel="brief">
+          <button type="button" className="brief-close" onClick={() => setShowBrief(false)} aria-label="ปิดแผงภารกิจ">×</button>
           <section className="ranger-card">
             <span className="ranger-badge">{rank.level}</span>
             <div><small>COAST KEEPER</small><strong>{rank.name}</strong><div className="xp-track"><i style={{ width: `${rank.progress}%` }} /></div><small>{game.journey.xp} / {rank.next?.xp || 'MAX'} XP</small></div>
@@ -664,7 +666,8 @@ function App() {
           <button onClick={() => setShowLog(true)} aria-label="เปิดบันทึก"><GameIcon name="log" /><span>บันทึก</span></button>
           <button onClick={() => setShowJournal(true)} aria-label="เปิดสมุดสัตว์"><GameIcon name="wildlife" /><span>สมุดสัตว์</span><em>{game.journey.discovered.length}/4</em></button>
           <button onClick={() => setShowPlots(true)} aria-label="เปิดแผนที่แปลง"><GameIcon name="plots" /><span>แปลง</span></button>
-          <button onClick={() => setShowEconomy((v) => !v)} className="economy-toggle" aria-label="เปิดเศรษฐกิจ"><GameIcon name="economy" /><span>เศรษฐกิจ</span></button>
+          <button onClick={() => { setShowBrief((v) => !v); setShowEconomy(false) }} className={`brief-toggle ${showBrief ? 'active' : ''}`} aria-label="เปิดแผงภารกิจ" aria-pressed={showBrief}><GameIcon name="goal" /><span>ภารกิจ</span></button>
+          <button onClick={() => { setShowEconomy((v) => !v); setShowBrief(false) }} className="economy-toggle" aria-label="เปิดเศรษฐกิจ" aria-pressed={showEconomy}><GameIcon name="economy" /><span>เศรษฐกิจ</span></button>
           <button onClick={() => { setSelectedPlot(null); setCameraReset((v) => v + 1) }} aria-label="คืนมุมกล้อง"><GameIcon name="target" /><span>คืนกล้อง</span></button>
           <button onClick={() => setPhotoMode(true)} aria-label="โหมดชมวิว"><GameIcon name="photo" /><span>ชมวิว</span></button>
           <button onClick={() => setSound((v) => !v)} aria-label={sound ? 'ปิดเสียง' : 'เปิดเสียง'} aria-pressed={sound}><GameIcon name="sound" /><span>{sound ? 'เสียงเปิด' : 'เสียงปิด'}</span></button>

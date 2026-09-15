@@ -37,3 +37,19 @@ test('Safari overrides load after existing visual styles', () => {
   assert.ok(restoration >= 0)
   assert.ok(safari > restoration)
 })
+
+
+test('narrow screens keep left brief panel on-demand', async () => {
+  const living = await readFile(new URL('../src/living-coast.css', import.meta.url), 'utf8')
+  const restoration = await readFile(new URL('../src/restoration.css', import.meta.url), 'utf8')
+  const safari = await readFile(new URL('../src/iphone-safari-fullscreen.css', import.meta.url), 'utf8')
+  for (const css of [living, restoration, safari]) {
+    assert.match(css, /\.left-stack[\s\S]*?display:\s*none/)
+    assert.match(css, /brief-open/)
+  }
+  assert.match(living, /brief-toggle/)
+  const app = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8')
+  assert.match(app, /showBrief/)
+  assert.match(app, /brief-toggle/)
+  assert.match(app, /data-mobile-panel="brief"/)
+})
