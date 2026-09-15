@@ -10,6 +10,8 @@ import {
   maliSpeechForFirstCrab,
   maliSpeechForTomorrowWait,
   maliSpeechForStreak,
+  maliSpeechForBayCelebration,
+  maliSpeechForMaxLegend,
   nonSpeechForClean,
   nonSpeechForPatrol,
   nonSpeechForForecastPrep,
@@ -19,6 +21,7 @@ import {
   nonSpeechForStorm,
   nonSpeechForKingtide,
   ingSpeechForMrv,
+  ingSpeechForRankUp,
   createSpeech,
 } from '../src/character-speech.js'
 
@@ -140,3 +143,10 @@ test('Ing MRV line includes verified amount when provided', () => {
   assert.equal(ingSpeechForMrv(), 'ออกเครดิต MRV แล้ว — ป่าพิสูจน์คุณค่าแล้ว')
   assert.equal(ingSpeechForMrv(0), 'ออกเครดิต MRV แล้ว — ป่าพิสูจน์คุณค่าแล้ว')
 })
+
+test('late-game bay and rank speech lines are fixed Thai strings', () => {
+  assert.equal(maliSpeechForBayCelebration(), 'อ่าวฟื้นเต็มร้อย! ป่าชายเลนกลับมามีชีวิตสมบูรณ์แล้ว')
+  assert.equal(ingSpeechForRankUp('ผู้นำชุมชนชายฝั่ง'), 'ขึ้นยศ「ผู้นำชุมชนชายฝั่ง」แล้ว — อ่าวจดจำทุกก้าวของทีมเรา')
+  assert.equal(maliSpeechForMaxLegend('มรดกป่าชายเลน'), '「มรดกป่าชายเลน」— มรดกของอ่าวอยู่กับเราแล้ว ดูแลต่อไปนะ')
+})
+

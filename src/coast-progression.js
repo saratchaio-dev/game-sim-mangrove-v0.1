@@ -1,10 +1,12 @@
 import { restoreExpedition } from './restoration.js'
 // Pure progression rules. All deadlines use game days, never real-world time.
-export const freshJourney = () => ({ xp: 0, combo: 0, bestCombo: 0, perfect: 0, mission: 0, fieldworkDay: 0, deliveryDay: 0, discovered: [], sandbox: false })
+export const freshJourney = () => ({ xp: 0, combo: 0, bestCombo: 0, perfect: 0, mission: 0, fieldworkDay: 0, deliveryDay: 0, discovered: [], sandbox: false, celebratedBay: false, celebratedMaxLegend: false, celebratedRankLevel: 1 })
 export const RANKS = [
   { xp: 0, name: 'นักปลูกมือใหม่' }, { xp: 100, name: 'ผู้ดูแลชายฝั่ง' },
   { xp: 260, name: 'นักฟื้นฟูระบบนิเวศ' }, { xp: 520, name: 'ผู้พิทักษ์ป่าชายเลน' },
   { xp: 900, name: 'ตำนานแห่งอ่าว' },
+  { xp: 1400, name: 'ผู้นำชุมชนชายฝั่ง' }, { xp: 2100, name: 'สถาปนิกอ่าวมีชีวิต' },
+  { xp: 3000, name: 'มรดกป่าชายเลน' },
 ]
 
 export function rankFor(xp) {
@@ -21,6 +23,9 @@ export const WILDLIFE = [
   { id: 'fish', icon: '🐟', name: 'ฝูงปลาวัยอ่อน', hint: 'ต้นไม้รอด 4 ต้น', test: (g) => living(g).length >= 4, reward: 45 },
   { id: 'bird', icon: '🕊', name: 'นกชายเลน', hint: 'ต้นโตเต็มที่ 3 ต้น', test: (g) => mature(g).length >= 3, reward: 65 },
   { id: 'firefly', icon: '✦', name: 'หิ่งห้อยลำพู', hint: 'ลำพูโตเต็มที่ 2 ต้น + Biodiversity 30', test: (g) => mature(g).filter((p) => p.species === 'sonneratia').length >= 2 && g.biodiversity >= 30, reward: 90 },
+  { id: 'mudskipper', icon: '🫧', name: 'ปลาตีน', hint: 'ต้นไม้รอด 8 ต้น + Coastal 40', test: (g) => living(g).length >= 8 && g.coastal >= 40, reward: 110 },
+  { id: 'heron', icon: '🦢', name: 'นกยางทะเล', hint: 'ต้นโตเต็มที่ 6 ต้น + Biodiversity 50', test: (g) => mature(g).length >= 6 && g.biodiversity >= 50, reward: 140 },
+  { id: 'kingfisher', icon: '🐦', name: 'นกกะเต็น', hint: 'ต้นโตเต็มที่ครบ 3 สายพันธุ์ + Biodiversity 60', test: (g) => new Set(mature(g).map((p) => p.species)).size >= 3 && g.biodiversity >= 60, reward: 180 },
 ]
 
 const MISSIONS = [
@@ -127,6 +132,11 @@ export function restoreGame(parsed, initial) {
     next.journey.perfect = next.plots.filter((p) => p.species && rules[p.species][0].includes(p.tide) && rules[p.species][1].includes(p.soil)).length
   }
   next.journey.sandbox = parsed.journey?.sandbox === true
+  next.journey.celebratedBay = parsed.journey?.celebratedBay === true
+  next.journey.celebratedMaxLegend = parsed.journey?.celebratedMaxLegend === true
+  next.journey.celebratedRankLevel = Number.isFinite(parsed.journey?.celebratedRankLevel)
+    ? Math.max(1, Math.min(RANKS.length, Math.floor(parsed.journey.celebratedRankLevel)))
+    : rankFor(next.journey.xp).level
   // Rehydrate event content from trusted definitions in App, rather than save text.
   next.event = parsed.event?.id ? { id: parsed.event.id } : null
   return next

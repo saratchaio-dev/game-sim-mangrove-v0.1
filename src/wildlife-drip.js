@@ -2,7 +2,7 @@
 import { WILDLIFE } from './coast-progression.js'
 
 export const DRIP_ACTIONS = ['survey', 'patrol', 'clean']
-export const DRIP_WEIGHTS = { crab: 40, fish: 30, bird: 20, firefly: 10 }
+export const DRIP_WEIGHTS = { crab: 40, fish: 30, bird: 20, firefly: 10, mudskipper: 8, heron: 5, kingfisher: 3 }
 export const DRIP_CHANCE = 0.55
 
 export function eligibleDripPool(game) {
@@ -29,7 +29,7 @@ export function pickWeighted(pool, rng = Math.random) {
 export function tryWildlifeDrip(game, actionKey, rng = Math.random) {
   if (!DRIP_ACTIONS.includes(actionKey)) return { game, unlocked: null }
   if (game.expedition?.dripDay === game.day) return { game, unlocked: null }
-  if ((game.journey?.discovered?.length || 0) >= 4) return { game, unlocked: null }
+  if ((game.journey?.discovered?.length || 0) >= WILDLIFE.length) return { game, unlocked: null }
   const pool = eligibleDripPool(game)
   if (!pool.length) return { game, unlocked: null }
   if (rng() >= DRIP_CHANCE) return { game, unlocked: null }

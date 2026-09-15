@@ -50,13 +50,22 @@ export function protectionFlagItems(active) {
   }
 }
 
-/** Gate plot fauna by journal discovery ids (crab/fish/bird/firefly). */
+/** Gate plot fauna by journal discovery ids (set 1 + set 2 boosts). */
 export function plotWildlifeForDiscovery(discovered = []) {
   const ids = Array.isArray(discovered) ? discovered : []
+  const showMudskipper = ids.includes('mudskipper')
+  const showHeron = ids.includes('heron')
+  const showKingfisher = ids.includes('kingfisher')
   return {
     showCrabs: ids.includes('crab'),
     showFish: ids.includes('fish'),
     showBirds: ids.includes('bird'),
     showFireflies: ids.includes('firefly'),
+    showMudskipper,
+    showHeron,
+    showKingfisher,
+    crabBoost: showMudskipper ? 2 : 0,
+    fishBoost: showKingfisher ? 1 : 0,
+    birdBoost: (showHeron ? 1 : 0) + (showKingfisher ? 1 : 0),
   }
 }

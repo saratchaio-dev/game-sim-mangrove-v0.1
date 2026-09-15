@@ -7,10 +7,11 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
-import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, maliSpeechForStreak, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, nonSpeechForStorm, nonSpeechForKingtide, ingSpeechForSurvey, ingSpeechForMrv, ingSpeechForWildlifeDrip, nonSpeechForWildlifeDrip } from './character-speech.js'
+import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, maliSpeechForStreak, maliSpeechForBayCelebration, maliSpeechForMaxLegend, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, nonSpeechForStorm, nonSpeechForKingtide, ingSpeechForSurvey, ingSpeechForMrv, ingSpeechForWildlifeDrip, nonSpeechForWildlifeDrip, ingSpeechForRankUp } from './character-speech.js'
 import { streakTheaterFor } from './streak-theater.js'
 import { cliffhangerFor } from './dawn-cliffhanger.js'
 import { DRIP_ACTIONS, tryWildlifeDrip } from './wildlife-drip.js'
+import { shouldCelebrateBay, shouldCelebrateRank, markBayCelebrated, markRankCelebrated, bayCelebrationNotice, rankCelebrationNotice } from './late-game-celebration.js'
 
 const SPEAKER_LABELS = { mali: 'มะลิ', non: 'นนท์', ing: 'อิง' }
 
@@ -235,6 +236,34 @@ function App() {
       setNotice(names.length ? `ค้นพบ ${names.join(' · ')}! รับทุนสำรวจ +${next.coins - game.coins} เหรียญ` : '✦ ความสำเร็จใหม่! เปิดแผนภาคสนามเพื่อดูสมุดสะสม')
     }
   }, [game])
+
+  useEffect(() => {
+    if (!shouldCelebrateBay(game)) return
+    setGame((current) => (shouldCelebrateBay(current) ? markBayCelebrated(current) : current))
+    speakMali(maliSpeechForBayCelebration(), 'late-game-bay')
+    setNotice(bayCelebrationNotice())
+    setWorldAction({ type: 'late-game-celebration', kind: 'bay', id: `bay-100-${game.day}-${game.journey.xp}` })
+    playChime()
+  }, [habitat.score, game.journey.celebratedBay, game.day, game.journey.xp])
+
+  useEffect(() => {
+    const level = shouldCelebrateRank(game)
+    if (!level) return
+    const nextRank = rankFor(game.journey.xp)
+    setGame((current) => {
+      const pending = shouldCelebrateRank(current)
+      return pending ? markRankCelebrated(current, pending) : current
+    })
+    if (!nextRank.next) {
+      speakMali(maliSpeechForMaxLegend(nextRank.name), 'late-game-max-legend')
+      setWorldAction({ type: 'late-game-celebration', kind: 'max-legend', rankLevel: level, id: `rank-max-${level}-${game.day}` })
+    } else {
+      speakCharacter('ing', ingSpeechForRankUp(nextRank.name), 'late-game-rank')
+      setWorldAction({ type: 'late-game-celebration', kind: 'rank', rankLevel: level, id: `rank-${level}-${game.day}` })
+    }
+    setNotice(rankCelebrationNotice(nextRank.name, level))
+    playChime()
+  }, [rank.level, game.journey.celebratedRankLevel, game.journey.xp, game.day])
 
   const selected = game.plots.find((plot) => plot.id === selectedPlot) || null
   const year = Math.floor((game.day - 1) / 20) + 1
@@ -643,7 +672,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined} data-event-speech={worldAction?.type === 'event-speech' && ['storm', 'kingtide', 'mrv'].includes(worldAction.eventId) ? worldAction.eventId : undefined}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined} data-event-speech={worldAction?.type === 'event-speech' && ['storm', 'kingtide', 'mrv'].includes(worldAction.eventId) ? worldAction.eventId : undefined} data-late-game-celebration={worldAction?.type === 'late-game-celebration' ? (worldAction.kind || 'bay') : undefined}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}
@@ -800,7 +829,7 @@ function App() {
           <button onClick={() => setShowRestoration(true)} aria-label="เปิดแผนภาคสนาม"><GameIcon name="field" /><span>ภาคสนาม</span></button>
           <button onClick={() => setShowGoals(true)} aria-label="เปิดเป้าหมายระยะยาว"><GameIcon name="goal" /><span>เป้าหมาย</span></button>
           <button onClick={() => setShowLog(true)} aria-label="เปิดบันทึก"><GameIcon name="log" /><span>บันทึก</span></button>
-          <button onClick={() => setShowJournal(true)} aria-label="เปิดสมุดสัตว์"><GameIcon name="wildlife" /><span>สมุดสัตว์</span><em>{game.journey.discovered.length}/4</em></button>
+          <button onClick={() => setShowJournal(true)} aria-label="เปิดสมุดสัตว์"><GameIcon name="wildlife" /><span>สมุดสัตว์</span><em>{game.journey.discovered.length}/{WILDLIFE.length}</em></button>
           <button onClick={() => setShowPlots(true)} aria-label="เปิดแผนที่แปลง"><GameIcon name="plots" /><span>แปลง</span></button>
           <button onClick={() => setShowEconomy((v) => !v)} className="economy-toggle" aria-label="เปิดเศรษฐกิจ"><GameIcon name="economy" /><span>เศรษฐกิจ</span></button>
           <button onClick={() => { setSelectedPlot(null); setCameraReset((v) => v + 1) }} aria-label="คืนมุมกล้อง"><GameIcon name="target" /><span>คืนกล้อง</span></button>

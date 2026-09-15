@@ -611,22 +611,38 @@ function ActionSceneBeat({ action }) {
 
   useEffect(() => {
     if (!action?.type) return
-    const kinds = ['plant', 'care', 'wildlife-drip', 'streak-theater', 'event-speech']
+    const kinds = ['plant', 'care', 'wildlife-drip', 'streak-theater', 'event-speech', 'late-game-celebration']
     if (!kinds.includes(action.type)) return
-    if (!action.plotId && action.type !== 'wildlife-drip' && action.type !== 'streak-theater' && action.type !== 'event-speech') return
+    if (!action.plotId && action.type !== 'wildlife-drip' && action.type !== 'streak-theater' && action.type !== 'event-speech' && action.type !== 'late-game-celebration') return
     setLive(action)
     const ms = action.type === 'plant' ? 1450
       : action.type === 'wildlife-drip' ? 1400
       : action.type === 'streak-theater' ? 1800
       : action.type === 'event-speech' ? 1700
+      : action.type === 'late-game-celebration' ? 1900
       : 1000
     const timer = setTimeout(() => {
       setLive((current) => (current?.id === action.id ? null : current))
     }, ms)
     return () => clearTimeout(timer)
-  }, [action?.id, action?.type, action?.plotId, action?.animalId, action?.streak, action?.eventId])
+  }, [action?.id, action?.type, action?.plotId, action?.animalId, action?.streak, action?.eventId, action?.kind])
 
   if (!live?.type) return null
+  if (live.type === 'late-game-celebration') {
+    const kind = live.kind === 'rank' || live.kind === 'max-legend' ? live.kind : 'bay'
+    const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.55, -5.0]
+    const tint = kind === 'bay' ? '#7be0a8' : kind === 'max-legend' ? '#ffd36a' : '#c9e4ff'
+    const seed = String(live.id || kind).length + (live.rankLevel || 1)
+    return (
+      <group
+        name="late-game-celebration-fx"
+        position={pos}
+        userData={{ actionFx: 'late-game-celebration', celebrationKind: kind, rankLevel: live.rankLevel || 0, actionId: live.id }}
+      >
+        <DiscoverSpark seed={seed} tint={tint} />
+      </group>
+    )
+  }
   if (live.type === 'event-speech') {
     const eventId = ['storm', 'kingtide', 'mrv'].includes(live.eventId) ? live.eventId : 'storm'
     const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.55, -5.2]
@@ -654,7 +670,7 @@ function ActionSceneBeat({ action }) {
     )
   }
   if (live.type === 'wildlife-drip') {
-    const tint = ({ crab: '#ff8d70', fish: '#65d7e8', bird: '#f8f4dd', firefly: '#ffe56a' })[live.animalId] || '#ffe56a'
+    const tint = ({ crab: '#ff8d70', fish: '#65d7e8', bird: '#f8f4dd', firefly: '#ffe56a', mudskipper: '#8fd4a8', heron: '#d8e8f8', kingfisher: '#6ec8ff' })[live.animalId] || '#ffe56a'
     const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.5, -6]
     const seed = String(live.id || live.animalId || 'drip').length + (live.animalId?.charCodeAt?.(0) || 1)
     return (
@@ -1376,12 +1392,12 @@ function Wildlife({ plots, communityLevel, habitatStage = 0, plantCue = null, di
   const crabCount = Math.max(
     living >= 2 ? 1 : 0,
     gate.showCrabs ? Math.max(living > 0 ? 2 : 0, base.crabs) : Math.min(base.crabs, living >= 2 ? 2 : 0),
-  )
+  ) + (gate.crabBoost || 0)
   const fishCount = Math.max(
     living >= 3 ? 1 : 0,
     gate.showFish ? Math.max(living > 0 ? 1 : 0, base.fish) : Math.min(base.fish, living >= 3 ? 1 : 0),
-  )
-  const birdCount = gate.showBirds ? Math.max(mature > 0 || living > 0 ? 1 : 0, base.birds) : Math.min(base.birds, mature >= 1 ? 1 : 0)
+  ) + (gate.fishBoost || 0)
+  const birdCount = (gate.showBirds ? Math.max(mature > 0 || living > 0 ? 1 : 0, base.birds) : Math.min(base.birds, mature >= 1 ? 1 : 0)) + (gate.birdBoost || 0)
 
   return (
     <group>

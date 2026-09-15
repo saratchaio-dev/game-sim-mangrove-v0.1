@@ -22,16 +22,22 @@ const forest = (count = 6, age = 6) => {
   return g
 }
 
-test('DRIP_ACTIONS and weights prefer crab > fish > bird > firefly', () => {
+test('DRIP_ACTIONS and weights prefer crab > fish > bird > firefly > set2', () => {
   assert.deepEqual(DRIP_ACTIONS, ['survey', 'patrol', 'clean'])
   assert.equal(DRIP_WEIGHTS.crab, 40)
   assert.equal(DRIP_WEIGHTS.fish, 30)
   assert.equal(DRIP_WEIGHTS.bird, 20)
   assert.equal(DRIP_WEIGHTS.firefly, 10)
+  assert.equal(DRIP_WEIGHTS.mudskipper, 8)
+  assert.equal(DRIP_WEIGHTS.heron, 5)
+  assert.equal(DRIP_WEIGHTS.kingfisher, 3)
   assert.equal(DRIP_CHANCE, 0.55)
   assert.ok(DRIP_WEIGHTS.crab > DRIP_WEIGHTS.fish)
   assert.ok(DRIP_WEIGHTS.fish > DRIP_WEIGHTS.bird)
   assert.ok(DRIP_WEIGHTS.bird > DRIP_WEIGHTS.firefly)
+  assert.ok(DRIP_WEIGHTS.firefly > DRIP_WEIGHTS.mudskipper)
+  assert.ok(DRIP_WEIGHTS.mudskipper > DRIP_WEIGHTS.heron)
+  assert.ok(DRIP_WEIGHTS.heron > DRIP_WEIGHTS.kingfisher)
 })
 
 test('eligibleDripPool only includes test-passing undiscovered animals', () => {
@@ -85,9 +91,9 @@ test('once per day: dripDay blocks further unlocks same day', () => {
   assert.strictEqual(second.game, first.game)
 })
 
-test('4/4 discovered is silent', () => {
+test('full journal discovered is silent', () => {
   const g = forest(6, 6)
-  g.journey.discovered = ['crab', 'fish', 'bird', 'firefly']
+  g.journey.discovered = ['crab', 'fish', 'bird', 'firefly', 'mudskipper', 'heron', 'kingfisher']
   const { game, unlocked } = tryWildlifeDrip(g, 'survey', () => 0)
   assert.equal(unlocked, null)
   assert.strictEqual(game, g)

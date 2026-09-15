@@ -128,7 +128,9 @@ test('invalid saves cannot inject unknown species, duplicate claims, or NaN reso
   assert.deepEqual(next.claimedChapters, [0, 1])
   assert.equal(restoreGame({ plots: [] }, fixture()).plots.length, 16)
   assert.equal(rankFor(900).level, 5)
-  assert.equal(rankFor(900).progress, 100)
+  assert.ok(rankFor(900).progress < 100)
+  assert.equal(rankFor(3000).level, 8)
+  assert.equal(rankFor(3000).progress, 100)
 })
 
 test('plant/care beat fields must not survive restoreGame', () => {
