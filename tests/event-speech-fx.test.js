@@ -35,3 +35,7 @@ test('event-speech cue does not regress streak drip or bird heading', () => {
   const bird = source.slice(source.indexOf('function Bird('), source.indexOf('function Wildlife('))
   assert.match(bird, /Math\.atan2\(vx, vz\) - Math\.PI \/ 2/)
 })
+
+test('event-speech eventId allowlist is storm|kingtide|mrv only on shell', () => {
+  assert.match(app, /\['storm', 'kingtide', 'mrv'\]\.includes\(worldAction\.eventId\)/)
+})
