@@ -81,6 +81,7 @@ export function installWorldDiagnostics({ gl, scene, camera, plotPositions, fram
         fish: actors.filter((a) => a.name.startsWith('coast-fish-')).length,
       },
       hudCompact: beat?.hudCompact ?? null,
+      photoMode: beat?.photoMode ?? false,
       plots: plotPositions.map(([x, z], index) => {
         projected.set(x, .65, z).project(camera)
         return { id: index + 1, x: (projected.x + 1) / 2 * gl.domElement.clientWidth,

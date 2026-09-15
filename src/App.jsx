@@ -87,6 +87,11 @@ function App() {
   useEffect(() => () => { audioRef.current?.close().catch(() => {}); audioRef.current = null }, [])
   useEffect(() => {
     const onKey = (event) => {
+      if (event.key === 'p' || event.key === 'P') {
+        if (event.target?.closest?.('input, textarea, [contenteditable="true"]')) return
+        setPhotoMode((value) => !value)
+        return
+      }
       if (event.key !== 'Escape') return
       setPhotoMode(false); setShowPlots(false); setShowJournal(false); setShowRestoration(false); setShowDayPlan(false)
       setShowEconomy(false); setShowGoals(false); setShowUpgrades(false); setShowLog(false)
@@ -152,6 +157,20 @@ function App() {
       else delete window.__coastBeat
     }
   }, [hudCompact])
+
+  useEffect(() => {
+    if (!(import.meta.env.DEV || import.meta.env.VITE_WORLD_QA === '1')) return
+    if (!new URLSearchParams(location.search).has('qa')) return
+    const prev = window.__coastBeat || {}
+    window.__coastBeat = { ...prev, photoMode }
+    return () => {
+      if (!window.__coastBeat) return
+      if (window.__coastBeat.photoMode !== photoMode) return
+      const { photoMode: _drop, ...rest } = window.__coastBeat
+      if (Object.keys(rest).length) window.__coastBeat = rest
+      else delete window.__coastBeat
+    }
+  }, [photoMode])
 
   const derived = useMemo(() => {
     const planted = game.plots.filter((plot) => plot.species)
@@ -563,7 +582,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}
@@ -582,10 +601,19 @@ function App() {
         upgrades={game.upgrades}
       />
 
-      {photoMode && <button className="photo-exit" onClick={() => setPhotoMode(false)}>← กลับเข้าเกม · Esc</button>}
+      {photoMode && (
+        <div className="photo-mode-chrome" aria-live="polite">
+          <div className="photo-mode-title">
+            <strong>MANGROVE BAY</strong>
+            <small>วันที่ {game.day} · {forecast.tide}{game.event ? ` · ${game.event.title}` : ''}</small>
+          </div>
+          <button className="photo-exit" onClick={() => setPhotoMode(false)}>← กลับเข้าเกม · Esc · P</button>
+          <span className="photo-mode-hint">กด P เพื่อสลับโหมดชมวิว</span>
+        </div>
+      )}
       <div className="game-ui">
         <header className="top-hud">
-          <div className="brand-plaque">
+          <div className="brand-plaque" data-title-brand="mangrove-bay">
             <span className="brand-emblem">M</span>
             <span>
               <strong>MANGROVE BAY</strong>
@@ -799,10 +827,18 @@ function App() {
 
       {showHelp && (
         <ModalBackdrop>
-          <div className="help-modal game-modal">
+          <div className="help-modal game-modal title-screen" data-title-screen="true">
             <button className="modal-close" onClick={closeHelp}>×</button>
-            <small>HOW TO PLAY</small>
-            <h2>ฟื้นป่าชายเลนในโลก 3D</h2>
+            <div className="title-hero" aria-hidden="true">
+              <span className="title-bay" />
+              <span className="title-mangrove title-mangrove-a" />
+              <span className="title-mangrove title-mangrove-b" />
+              <span className="title-mangrove title-mangrove-c" />
+              <span className="title-sun" />
+            </div>
+            <small>LIVING COAST · START</small>
+            <h2>Mangrove Bay</h2>
+            <p className="title-tagline">อ่าวเล็ก ๆ การกลับมาครั้งใหญ่ · ปลูก ดูแล และดูชีวิตชายฝั่งฟื้นคืน</p>
             <div className="help-steps">
               <HelpStep number="1" title="เลือกพันธุ์" text="เลือกแปลงสีเขียวในแผนที่ Fit 2/2 รับคอมโบคืนทุนสูงสุด 20 เหรียญ" />
               <HelpStep number="2" title="คลิกแปลงในฉาก" text="คลิกแปลงเพื่อดู Fit และราคาก่อนยืนยันปลูก แปลงทรายฟื้นดินได้" />
@@ -810,8 +846,8 @@ function App() {
               <HelpStep number="4" title="ตรวจ MRV" text="Estimated Carbon ต้องผ่าน Drone + Field ก่อนออกเครดิต" />
               <HelpStep number="5" title="สร้าง Impact" text="ทำภารกิจรับรางวัล สะสม XP และปลดล็อกสัตว์ในสมุดสำรวจ" />
             </div>
-            <button className="primary-game-button large" onClick={closeHelp}>เริ่มเล่น</button>
-            <p className="simulation-note">ค่าคาร์บอนและระบบนิเวศเป็นกลไกจำลองเพื่อการเล่น ไม่ใช่การคำนวณเครดิตจริง</p>
+            <button className="primary-game-button large title-start-button" onClick={closeHelp}>เริ่มฟื้นอ่าว →</button>
+            <p className="simulation-note">ค่าคาร์บอนและระบบนิเวศเป็นกลไกจำลองเพื่อการเล่น ไม่ใช่การคำนวณเครดิตจริง · กด P เพื่อโหมดชมวิว</p>
           </div>
         </ModalBackdrop>
       )}
