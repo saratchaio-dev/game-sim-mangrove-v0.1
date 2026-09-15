@@ -43,6 +43,11 @@ async function open(viewport) {
   assert.equal(lighting0.tideOffset, forecast0.tideOffset, 'lighting.tideOffset must match forecast')
   assert.equal(lighting0.preset, forecast0.expectedPreset, 'clear weather preset follows golden/day from forecast')
   check('mood lighting publishes lighting.preset/sky/fog/tideOffset on diagnostics')
+  const scenery = await page.evaluate(() => window.__coastDiagnostics().scenery)
+  assert.ok(scenery?.batchCount > 0, 'scenery batches should be present')
+  assert.ok(scenery.batches.some((b) => b.name === 'sky-clouds'), 'clouds should be instanced as sky-clouds')
+  check('scenery batching publishes scenery.batches including sky-clouds')
+
   await page.evaluate(() => document.fonts.ready)
   return page
 }
