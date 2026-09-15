@@ -1014,11 +1014,11 @@ function Fish({ position, color = '#ffd166', seed = 0, scale = 0.65, roam = 1.2,
     <group name={`coast-fish-${seed}`} ref={group} position={position} scale={scale}>
       <mesh scale={[1.5, 0.64, 0.64]}>
         <sphereGeometry args={[0.23, 8, 6]} />
-        <meshStandardMaterial color={color} roughness={0.62} transparent opacity={0.86} />
+        <meshStandardMaterial color={color} roughness={0.55} transparent={false} opacity={1} />
       </mesh>
       <mesh ref={tail} position={[-0.48, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
         <coneGeometry args={[0.19, 0.4, 3]} />
-        <meshStandardMaterial color={color} transparent opacity={0.86} />
+        <meshStandardMaterial color={color} transparent={false} opacity={1} />
       </mesh>
     </group>
   )
@@ -1116,21 +1116,13 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
     () => plots.filter((plot) => plot.species && !plot.dead),
     [plots],
   )
-  // Match crab pacing after size/speed cut (~1/3 of the previous loud plot crabs).
+  // Same readable scale/speed as the tuned plot crabs (~1/3 of the loud prototype).
   const plotScale = 0.52
   const plotRoam = 1.15
-  const crabs = discovered.includes('crab')
-    ? livingPlots.slice(0, Math.min(4, livingPlots.length))
-    : []
-  const fish = discovered.includes('fish')
-    ? livingPlots.filter((plot) => plot.tide === 'สูง' || plot.tide === 'กลาง' || plot.tide === 'ต่ำ').slice(0, Math.min(4, livingPlots.length))
-    : []
-  const birds = discovered.includes('bird')
-    ? livingPlots.slice(0, Math.min(3, livingPlots.length))
-    : []
-  const fireflyPlots = discovered.includes('firefly')
-    ? livingPlots.filter((plot) => plot.species === 'sonneratia' || plot.age >= 4).slice(0, Math.min(3, livingPlots.length))
-    : []
+  const crabs = discovered.includes('crab') ? livingPlots.slice(0, Math.min(5, livingPlots.length)) : []
+  const fish = discovered.includes('fish') ? livingPlots.slice(0, Math.min(5, livingPlots.length)) : []
+  const birds = discovered.includes('bird') ? livingPlots.slice(0, Math.min(4, livingPlots.length)) : []
+  const fireflyPlots = discovered.includes('firefly') ? livingPlots.slice(0, Math.min(4, livingPlots.length)) : []
 
   return (
     <group name="plot-wildlife">
@@ -1151,13 +1143,14 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
       })}
       {fish.map((plot, index) => {
         const [x, y, z] = plotPosition(plot.id)
+        // Keep fish on the mud/waterline so the isometric camera can see them (not buried).
         return (
           <Fish
             key={`plot-fish-${plot.id}`}
-            position={[x - 0.15, y - 0.35, z - 0.55]}
-            color={['#ffd166', '#88e0dd', '#ff8d70'][index % 3]}
+            position={[x + 0.35 + (index % 2) * 0.2, y + 0.18, z - 0.95]}
+            color={['#ffd166', '#3ad0c8', '#ff8d70'][index % 3]}
             seed={plot.id * 0.7}
-            scale={plotScale}
+            scale={plotScale * 1.15}
             roam={plotRoam}
             alwaysAnimate
           />
@@ -1171,9 +1164,9 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
             seed={plot.id * 0.9 + index}
             plantCue={plantCue}
             center={[x, y, z]}
-            scale={plotScale}
-            roam={plotRoam}
-            height={y + 1.35}
+            scale={plotScale * 1.2}
+            roam={plotRoam * 0.85}
+            height={y + 0.95}
             alwaysAnimate
           />
         )
@@ -1183,13 +1176,13 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
         return (
           <Sparkles
             key={`plot-firefly-${plot.id}`}
-            position={[x, y + 1.1, z]}
-            count={14}
-            scale={[1.6, 1.2, 1.6]}
-            size={2.4}
-            speed={0.22}
-            color="#f6ec87"
-            opacity={0.9}
+            position={[x + 0.2, y + 0.85, z + 0.15]}
+            count={22}
+            scale={[2.2, 1.6, 2.2]}
+            size={3.6}
+            speed={0.18}
+            color="#ffe56a"
+            opacity={1}
           />
         )
       })}
