@@ -396,6 +396,69 @@ function PlantingBurst({ seed = 0 }) {
   )
 }
 
+
+function CarePulse({ seed = 0 }) {
+  const ring = useRef()
+  const glow = useRef()
+  const elapsed = useRef(0)
+
+  useFrame((_, delta) => {
+    if (elapsed.current >= 1) return
+    elapsed.current += delta
+    const progress = Math.min(1, elapsed.current / 1)
+    const pulse = Math.sin(progress * Math.PI)
+    if (ring.current) {
+      ring.current.scale.setScalar(0.85 + pulse * 0.9)
+      ring.current.material.opacity = Math.max(0, 0.85 * (1 - progress))
+      ring.current.rotation.z = progress * Math.PI * 1.2 + seed * 0.1
+    }
+    if (glow.current) {
+      glow.current.scale.setScalar(0.7 + pulse * 1.1)
+      glow.current.material.opacity = Math.max(0, 0.55 * (1 - progress))
+    }
+  })
+
+  return (
+    <group position={[0, 0.1, 0]}>
+      <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.42, 0.045, 8, 28]} />
+        <meshBasicMaterial color="#7dff9a" transparent opacity={0.85} depthWrite={false} />
+      </mesh>
+      <mesh ref={glow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <circleGeometry args={[0.55, 20]} />
+        <meshBasicMaterial color="#b7ffc8" transparent opacity={0.45} depthWrite={false} />
+      </mesh>
+    </group>
+  )
+}
+
+function ActionSceneBeat({ action }) {
+  const [live, setLive] = useState(null)
+
+  useEffect(() => {
+    if (!action?.plotId) return
+    if (action.type !== 'plant' && action.type !== 'care') return
+    setLive(action)
+    const ms = action.type === 'plant' ? 1450 : 1000
+    const timer = setTimeout(() => {
+      setLive((current) => (current?.id === action.id ? null : current))
+    }, ms)
+    return () => clearTimeout(timer)
+  }, [action?.id, action?.type, action?.plotId])
+
+  if (!live?.plotId) return null
+  const kind = live.type === 'care' ? 'care' : 'plant'
+  return (
+    <group
+      name={`action-fx-${kind}`}
+      position={plotPosition(live.plotId)}
+      userData={{ actionFx: kind, actionId: live.id }}
+    >
+      {kind === 'plant' ? <PlantingBurst seed={live.plotId} /> : <CarePulse seed={live.plotId} />}
+    </group>
+  )
+}
+
 function SelectionMarker() {
   return (
     <Float speed={2.3} rotationIntensity={0.12} floatIntensity={0.28}>
@@ -507,7 +570,6 @@ function Plot3D({ plot, selected, activeSpecies, onClick, storm }) {
       {occupied ? (
         <>
           <MangroveTree plot={plot} plotId={plot.id} storm={storm} />
-          {plot.age === 0 && !plot.dead && <PlantingBurst seed={plot.id} />}
         </>
       ) : (
         <EmptyPlotMarker activeSpecies={activeSpecies} hovered={hovered} />
@@ -874,14 +936,24 @@ const DecorativeMangroves = memo(function DecorativeMangroves() {
 })
 
 
-function Crab({ position, seed = 0 }) {
+function Crab({ position, seed = 0, plantCue = null }) {
   const group = useRef()
   const claws = useRef()
+  const lastCue = useRef(null)
+  const cueUntil = useRef(0)
 
   useFrame((state) => {
     if (!group.current) return
-    group.current.rotation.y = Math.sin(state.clock.elapsedTime + seed) * 0.2
-    if (claws.current) claws.current.rotation.z = Math.sin(state.clock.elapsedTime * 3 + seed) * .22
+    if (plantCue != null && plantCue !== lastCue.current) {
+      lastCue.current = plantCue
+      cueUntil.current = state.clock.elapsedTime + 1
+    }
+    const excited = state.clock.elapsedTime < cueUntil.current
+    group.current.userData.shoreCue = excited
+    const spin = excited ? 0.55 : 0.2
+    const claw = excited ? 0.55 : 0.22
+    group.current.rotation.y = Math.sin(state.clock.elapsedTime * (excited ? 2.4 : 1) + seed) * spin
+    if (claws.current) claws.current.rotation.z = Math.sin(state.clock.elapsedTime * (excited ? 7 : 3) + seed) * claw
     const t = state.clock.elapsedTime * .4 + seed
     group.current.position.x = position[0] + Math.sin(t) * .6
     group.current.position.z = position[2] + Math.cos(t * .7) * .2
@@ -941,22 +1013,32 @@ function Fish({ position, color = '#ffd166', seed = 0 }) {
   )
 }
 
-function Bird({ seed = 0 }) {
+function Bird({ seed = 0, plantCue = null }) {
   const group = useRef()
   const leftWing = useRef()
   const rightWing = useRef()
+  const lastCue = useRef(null)
+  const cueUntil = useRef(0)
 
   useFrame((state) => {
+    if (plantCue != null && plantCue !== lastCue.current) {
+      lastCue.current = plantCue
+      cueUntil.current = state.clock.elapsedTime + 1
+    }
+    const excited = state.clock.elapsedTime < cueUntil.current
+    if (group.current) group.current.userData.shoreCue = excited
     const t = state.clock.elapsedTime * 0.3 + seed
     if (group.current) {
       const radius = 5.5 + seed * 0.7
       group.current.position.x = Math.cos(t) * radius
       group.current.position.z = Math.sin(t) * radius + 0.8
-      group.current.position.y = 7.2 + Math.sin(t * 2) * 0.35
+      group.current.position.y = 7.2 + Math.sin(t * 2) * 0.35 + (excited ? 0.25 : 0)
       group.current.rotation.y = -t + Math.PI / 2
     }
-    if (leftWing.current) leftWing.current.rotation.z = 1.05 + Math.sin(state.clock.elapsedTime * 5.2) * 0.34
-    if (rightWing.current) rightWing.current.rotation.z = -1.05 - Math.sin(state.clock.elapsedTime * 5.2) * 0.34
+    const flap = excited ? 9.5 : 5.2
+    const amp = excited ? 0.55 : 0.34
+    if (leftWing.current) leftWing.current.rotation.z = 1.05 + Math.sin(state.clock.elapsedTime * flap) * amp
+    if (rightWing.current) rightWing.current.rotation.z = -1.05 - Math.sin(state.clock.elapsedTime * flap) * amp
   })
 
   return (
@@ -977,7 +1059,7 @@ function Bird({ seed = 0 }) {
   )
 }
 
-function Wildlife({ plots, communityLevel }) {
+function Wildlife({ plots, communityLevel, plantCue = null }) {
   const living = plots.filter((plot) => plot.species && !plot.dead).length
   const mature = plots.filter((plot) => plot.species && !plot.dead && plot.age >= 6).length
   const crabCount = Math.min(6, Math.max(0, Math.floor(living / 3)))
@@ -987,7 +1069,7 @@ function Wildlife({ plots, communityLevel }) {
   return (
     <group>
       {Array.from({ length: crabCount }, (_, index) => (
-        <Crab key={`crab-${index}`} position={[-9.8 + index * 3.2, 0.47, -8.2 + (index % 2) * 0.8]} seed={index} />
+        <Crab key={`crab-${index}`} position={[-9.8 + index * 3.2, 0.47, -8.2 + (index % 2) * 0.8]} seed={index} plantCue={plantCue} />
       ))}
       {Array.from({ length: fishCount }, (_, index) => (
         <Fish
@@ -997,7 +1079,7 @@ function Wildlife({ plots, communityLevel }) {
           seed={index * 0.8}
         />
       ))}
-      {Array.from({ length: birdCount }, (_, index) => <Bird key={`bird-${index}`} seed={index * 1.8} />)}
+      {Array.from({ length: birdCount }, (_, index) => <Bird key={`bird-${index}`} seed={index * 1.8} plantCue={plantCue} />)}
     </group>
   )
 }
@@ -1103,7 +1185,7 @@ function CameraRig({ selectedPlot, cameraReset }) {
   )
 }
 
-function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, cameraReset, habitat, clean, protection, action, quality, onReady }) {
+function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, cameraReset, habitat, clean, protection, action, speech=null, quality, onReady }) {
   const storm = weather === 'storm' || weather === 'kingtide'
   const crewTarget = useMemo(() => action?.plotId
     ? plotPosition(action.plotId).map((v, i) => i === 0 ? v + .8 : v)
@@ -1146,7 +1228,7 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
       <Nursery level={upgrades.nursery} />
       <DroneStation level={upgrades.mrv} />
       <CommunityVillage level={upgrades.community} />
-      <CoastCharacters action={action} target={crewTarget} storm={storm} />
+      <CoastCharacters action={action} target={crewTarget} storm={storm} speech={speech} />
       <Dock />
       <Boat />
 
@@ -1161,7 +1243,8 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
         />
       ))}
 
-      <Wildlife plots={plots} communityLevel={upgrades.community} />
+      <ActionSceneBeat action={action} />
+      <Wildlife plots={plots} communityLevel={upgrades.community} plantCue={action?.type === 'plant' ? action.id : null} />
       {fireflies && plots.filter((p) => p.species === 'sonneratia' && !p.dead && p.age >= 6).map((p) => <Sparkles key={p.id} position={plotPosition(p.id).map((v, i) => i === 1 ? v + 1.8 : v)} count={18} scale={[2.8, 2.2, 2.8]} size={3.5} speed={0.6} color="#f6ec87" opacity={0.85} />)}
       <CoastalBarriers plots={plots} communityLevel={upgrades.community} />
       <Sparkles
