@@ -10,6 +10,8 @@ test('actual game actions select the appropriate worker, animation and tool',()=
   }
   assert.equal(workerTask(null),null)
   assert.equal(workerTask({type:'failed-plant'}),null)
+  assert.deepEqual(workerTask({type:'event-speech',eventId:'mrv',plotId:7}),{state:'mrv',worker:2,plotId:7})
+  assert.equal(workerTask({type:'event-speech',eventId:'storm'}),null)
 })
 test('seven states have finite, distinct poses and explicit elbow/knee joints',()=>{
   const states=['idle','walk','plant','cleanup','inspect','maintain','mrv']

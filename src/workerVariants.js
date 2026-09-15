@@ -6,9 +6,10 @@ export const workerVariants = [
 export const workerTools = { idle:'none', walk:'none', plant:'seedling-shovel', cleanup:'bag-picker', inspect:'notebook-binoculars', maintain:'watering-toolkit', mrv:'controller-tablet' }
 export function workerTask(action) {
   if (!action) return null
-  const state = {plant:'plant',clean:'cleanup',cleanup:'cleanup',clear:'cleanup',care:'maintain',maintenance:'maintain',survey:'inspect',patrol:'inspect',mrv:'mrv'}[action.type]
+  const type = action.type === 'event-speech' && action.eventId === 'mrv' ? 'mrv' : action.type
+  const state = {plant:'plant',clean:'cleanup',cleanup:'cleanup',clear:'cleanup',care:'maintain',maintenance:'maintain',survey:'inspect',patrol:'inspect',mrv:'mrv'}[type]
   if (!state) return null
-  return { state, worker:state==='plant'||state==='maintain'?0:state==='cleanup'||action.type==='patrol'?1:2, plotId:action.plotId||null }
+  return { state, worker:state==='plant'||state==='maintain'?0:state==='cleanup'||type==='patrol'?1:2, plotId:action.plotId||null }
 }
 // Workers never participate in the scene's picking pass: plots retain priority.
 export const workerRaycast = () => null

@@ -7,7 +7,7 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
-import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, maliSpeechForStreak, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey, ingSpeechForWildlifeDrip, nonSpeechForWildlifeDrip } from './character-speech.js'
+import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, maliSpeechForStreak, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, nonSpeechForStorm, nonSpeechForKingtide, ingSpeechForSurvey, ingSpeechForMrv, ingSpeechForWildlifeDrip, nonSpeechForWildlifeDrip } from './character-speech.js'
 import { streakTheaterFor } from './streak-theater.js'
 import { cliffhangerFor } from './dawn-cliffhanger.js'
 import { DRIP_ACTIONS, tryWildlifeDrip } from './wildlife-drip.js'
@@ -372,7 +372,13 @@ function App() {
       setDayReport({ ...result.report, cliffhanger: cliff })
       if (!cliff.hasContract) speakMali(cliff.maliTip || maliSpeechForTomorrowWait(), 'tomorrow-wait')
       setSelectedPlot(null)
-      setNotice(next.event ? 'เหตุการณ์ที่พยากรณ์ไว้มาถึงแล้ว' : `วันใหม่ · ทีมภาคสนามพร้อม 2 งาน · Carbon +${result.report.carbon.toFixed(1)}`)
+      if (next.event) {
+        setNotice('เหตุการณ์ที่พยากรณ์ไว้มาถึงแล้ว')
+        if (next.event.id === 'storm') speakCharacter('non', 'มรสุมมาถึงแล้ว — ตัดสินใจรับมือก่อน', 'event-arrive')
+        else if (next.event.id === 'kingtide') speakCharacter('non', 'น้ำหนุนสูงมาแล้ว — ตัดสินใจรับมือก่อน', 'event-arrive')
+      } else {
+        setNotice(`วันใหม่ · ทีมภาคสนามพร้อม 2 งาน · Carbon +${result.report.carbon.toFixed(1)}`)
+      }
       return next
     })
   }
@@ -401,7 +407,8 @@ function App() {
         stats: { ...current.stats, verified: current.stats.verified + issued },
       }
       next = appendLog(next, `MRV ผ่าน ออกเครดิต ${issued.toFixed(1)} tCO₂e`, 'carbon')
-      setWorldAction({ type: 'mrv', plotId: current.plots.find((p) => p.species && !p.dead)?.id || null, id: `mrv-${current.day}-${current.stats.verified}` })
+      speakCharacter('ing', ingSpeechForMrv(issued), 'event-speech')
+      setWorldAction({ type: 'event-speech', eventId: 'mrv', plotId: current.plots.find((p) => p.species && !p.dead)?.id || null, id: `event-speech-mrv-${current.day}-${current.stats.verified}` })
       setNotice(`Verified ${issued.toFixed(1)} tCO₂e · พร้อมถือหรือขายเครดิต`)
       return next
     })
@@ -541,6 +548,13 @@ function App() {
       const hadForecastPrep = ['storm', 'kingtide'].includes(event.id) && current.expedition.protectionDay === current.day
       if (['storm', 'kingtide'].includes(event.id)) next.expedition = { ...next.expedition, protectionDay: 0 }
       next.journey = { ...next.journey, xp: next.journey.xp + 20 }
+      if (['storm', 'kingtide'].includes(event.id)) {
+        setWorldAction({ type: 'event-speech', eventId: event.id, id: `event-speech-${event.id}-${current.day}` })
+        if (!hadForecastPrep) {
+          const line = event.id === 'storm' ? nonSpeechForStorm(event.title) : nonSpeechForKingtide(event.title)
+          speakCharacter('non', line, 'event-speech')
+        }
+      }
       if (hadForecastPrep) {
         const shown = event.id === 'storm'
           ? stormDamage(current, choiceKey === 'protect', 15)
@@ -629,7 +643,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined} data-event-speech={worldAction?.type === 'event-speech' && ['storm', 'kingtide', 'mrv'].includes(worldAction.eventId) ? worldAction.eventId : undefined}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}
