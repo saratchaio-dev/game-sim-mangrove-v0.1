@@ -543,22 +543,103 @@ function StreakTheaterFx({ streak = 2, seed = 0 }) {
   )
 }
 
+
+function EventSpeechCue({ eventId = 'storm', seed = 0 }) {
+  const group = useRef()
+  const glow = useRef()
+  const elapsed = useRef(0)
+  const palette = ({
+    storm: { tint: '#8eb6d8', soft: '#c5d8ea', count: 14 },
+    kingtide: { tint: '#5ec4c0', soft: '#b7f0ec', count: 16 },
+    mrv: { tint: '#9be08a', soft: '#e3ffc8', count: 12 },
+  })[eventId] || { tint: '#8eb6d8', soft: '#c5d8ea', count: 14 }
+  const particles = useMemo(() => (
+    Array.from({ length: palette.count }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / palette.count + pseudo(seed * 2.2 + index) * 0.35
+      const radius = 1.1 + pseudo(seed + index) * 1.4
+      return {
+        x: Math.cos(angle) * radius,
+        z: Math.sin(angle) * radius,
+        lift: 0.9 + pseudo(seed * 4 + index) * 1.6,
+        color: index % 2 ? palette.tint : palette.soft,
+      }
+    })
+  ), [palette.count, palette.soft, palette.tint, seed])
+
+  useFrame((_, delta) => {
+    if (!group.current || elapsed.current >= 1.7) return
+    elapsed.current += delta
+    const progress = Math.min(1, elapsed.current / 1.7)
+    const fade = progress < 0.18 ? progress / 0.18 : Math.max(0, 1 - (progress - 0.18) / 0.82)
+    group.current.visible = progress < 1
+    if (glow.current) {
+      glow.current.material.opacity = 0.22 * fade
+      glow.current.scale.setScalar(1.3 + progress * 1.5)
+    }
+    group.current.children.forEach((child, index) => {
+      if (index === 0) return
+      const particle = particles[index - 1]
+      if (!particle) return
+      child.position.set(
+        particle.x * (0.4 + progress * 0.85),
+        0.4 + progress * particle.lift,
+        particle.z * (0.4 + progress * 0.85),
+      )
+      child.scale.setScalar(0.4 + Math.sin(progress * Math.PI) * 0.85)
+      child.material.opacity = Math.max(0, fade)
+    })
+  })
+
+  return (
+    <group ref={group} position={[0, 0.25, 0]}>
+      <mesh ref={glow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+        <circleGeometry args={[2.1, 28]} />
+        <meshBasicMaterial color={palette.tint} transparent opacity={0.24} depthWrite={false} />
+      </mesh>
+      {particles.map((particle, index) => (
+        <mesh key={index}>
+          <sphereGeometry args={[0.07, 7, 5]} />
+          <meshBasicMaterial color={particle.color} transparent opacity={1} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function ActionSceneBeat({ action }) {
   const [live, setLive] = useState(null)
 
   useEffect(() => {
     if (!action?.type) return
-    if (action.type !== 'plant' && action.type !== 'care' && action.type !== 'wildlife-drip' && action.type !== 'streak-theater') return
-    if (!action.plotId && action.type !== 'wildlife-drip' && action.type !== 'streak-theater') return
+    const kinds = ['plant', 'care', 'wildlife-drip', 'streak-theater', 'event-speech']
+    if (!kinds.includes(action.type)) return
+    if (!action.plotId && action.type !== 'wildlife-drip' && action.type !== 'streak-theater' && action.type !== 'event-speech') return
     setLive(action)
-    const ms = action.type === 'plant' ? 1450 : action.type === 'wildlife-drip' ? 1400 : action.type === 'streak-theater' ? 1800 : 1000
+    const ms = action.type === 'plant' ? 1450
+      : action.type === 'wildlife-drip' ? 1400
+      : action.type === 'streak-theater' ? 1800
+      : action.type === 'event-speech' ? 1700
+      : 1000
     const timer = setTimeout(() => {
       setLive((current) => (current?.id === action.id ? null : current))
     }, ms)
     return () => clearTimeout(timer)
-  }, [action?.id, action?.type, action?.plotId, action?.animalId, action?.streak])
+  }, [action?.id, action?.type, action?.plotId, action?.animalId, action?.streak, action?.eventId])
 
   if (!live?.type) return null
+  if (live.type === 'event-speech') {
+    const eventId = ['storm', 'kingtide', 'mrv'].includes(live.eventId) ? live.eventId : 'storm'
+    const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.55, -5.2]
+    return (
+      <group
+        name="event-speech-fx"
+        position={pos}
+        userData={{ actionFx: 'event-speech', eventId, actionId: live.id }}
+      >
+        <EventSpeechCue eventId={eventId} seed={String(live.id || eventId).length + eventId.charCodeAt(0)} />
+      </group>
+    )
+  }
   if (live.type === 'streak-theater') {
     const streak = Number(live.streak) || 2
     const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.55, -5.5]

@@ -29,7 +29,9 @@ test('diagnostics expose streakTheaterFx for QA', () => {
 
 test('streak theater does not regress drip, plant/care, or bird heading', () => {
   assert.match(source, /wildlife-drip/)
-  assert.match(source, /action\.type !== 'plant' && action\.type !== 'care'/)
+  assert.match(source, /kinds\.includes\(action\.type\)/)
+  assert.match(source, /'plant'/)
+  assert.match(source, /'care'/)
   const bird = source.slice(source.indexOf('function Bird('), source.indexOf('function Wildlife('))
   assert.match(bird, /Math\.atan2\(vx, vz\) - Math\.PI \/ 2/)
   assert.doesNotMatch(bird, /rotation\.y = -t \+ Math\.PI \/ 2/)
