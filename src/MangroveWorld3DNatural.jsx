@@ -996,6 +996,8 @@ function Fish({ position, color = '#ffd166', seed = 0, scale = 0.65, roam = 1.2,
   const group = useRef()
   const tail = useRef()
   const motionDue = useMotionBudget(group, seed + 21)
+  const belly = '#fff1c7'
+  const fin = '#ff9f6b'
 
   useFrame((state, delta) => {
     if (!group.current) return
@@ -1012,13 +1014,46 @@ function Fish({ position, color = '#ffd166', seed = 0, scale = 0.65, roam = 1.2,
 
   return (
     <group name={`coast-fish-${seed}`} ref={group} position={position} scale={scale}>
-      <mesh scale={[1.5, 0.64, 0.64]}>
-        <sphereGeometry args={[0.23, 8, 6]} />
-        <meshStandardMaterial color={color} roughness={0.55} transparent={false} opacity={1} />
+      {/* Cozy low-poly mudskipper/school fish — readable on the mudline */}
+      <mesh scale={[1.55, 0.72, 0.78]} castShadow>
+        <sphereGeometry args={[0.22, 10, 8]} />
+        <meshStandardMaterial color={color} roughness={0.48} flatShading />
       </mesh>
-      <mesh ref={tail} position={[-0.48, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.19, 0.4, 3]} />
-        <meshStandardMaterial color={color} transparent={false} opacity={1} />
+      <mesh position={[0.08, -0.06, 0]} scale={[1.2, 0.45, 0.62]}>
+        <sphereGeometry args={[0.2, 8, 6]} />
+        <meshStandardMaterial color={belly} roughness={0.62} flatShading />
+      </mesh>
+      <mesh position={[0.34, 0.04, 0]} scale={[0.7, 0.62, 0.7]}>
+        <sphereGeometry args={[0.14, 8, 6]} />
+        <meshStandardMaterial color={color} roughness={0.48} flatShading />
+      </mesh>
+      <mesh position={[0.02, 0.22, 0]} rotation={[0, 0, 0.15]} scale={[0.85, 1, 0.18]}>
+        <coneGeometry args={[0.14, 0.28, 4]} />
+        <meshStandardMaterial color={fin} roughness={0.55} flatShading />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[0.05, -0.02, side * 0.18]} rotation={[side * 0.55, 0, side * 0.35]} scale={[0.7, 0.2, 0.55]}>
+          <coneGeometry args={[0.1, 0.22, 4]} />
+          <meshStandardMaterial color={fin} roughness={0.55} flatShading />
+        </mesh>
+      ))}
+      <group ref={tail} position={[-0.42, 0.02, 0]}>
+        <mesh position={[-0.08, 0.1, 0]} rotation={[0, 0, 0.85]} scale={[0.55, 1, 0.22]}>
+          <coneGeometry args={[0.14, 0.28, 4]} />
+          <meshStandardMaterial color={color} roughness={0.5} flatShading />
+        </mesh>
+        <mesh position={[-0.08, -0.1, 0]} rotation={[0, 0, -0.85]} scale={[0.55, 1, 0.22]}>
+          <coneGeometry args={[0.14, 0.28, 4]} />
+          <meshStandardMaterial color={fin} roughness={0.5} flatShading />
+        </mesh>
+      </group>
+      <mesh position={[0.42, 0.06, 0.1]}>
+        <sphereGeometry args={[0.045, 6, 5]} />
+        <meshStandardMaterial color="#1a2f34" roughness={0.35} />
+      </mesh>
+      <mesh position={[0.445, 0.075, 0.12]} scale={0.45}>
+        <sphereGeometry args={[0.04, 6, 4]} />
+        <meshBasicMaterial color="#f7fbff" />
       </mesh>
     </group>
   )
@@ -1032,6 +1067,10 @@ function Bird({ seed = 0, plantCue = null, center = null, scale = 0.7, roam = 5.
   const cueUntil = useRef(0)
   const motionDue = useMotionBudget(group, seed + 31)
   const [cx, , cz] = center || [0, 0, 0.8]
+  const body = '#f4f0df'
+  const wing = '#d9e6ea'
+  const tip = '#7a9aa8'
+  const beak = '#f0b429'
 
   useFrame((state, delta) => {
     if (plantCue != null && plantCue !== lastCue.current) {
@@ -1052,24 +1091,53 @@ function Bird({ seed = 0, plantCue = null, center = null, scale = 0.7, roam = 5.
     }
     const flap = alwaysAnimate ? 3.2 : (excited ? 9.5 : 5.2)
     const amp = alwaysAnimate ? 0.28 : (excited ? 0.55 : 0.34)
-    if (leftWing.current) leftWing.current.rotation.z = 1.05 + Math.sin(state.clock.elapsedTime * flap) * amp
-    if (rightWing.current) rightWing.current.rotation.z = -1.05 - Math.sin(state.clock.elapsedTime * flap) * amp
+    if (leftWing.current) leftWing.current.rotation.z = 0.35 + Math.sin(state.clock.elapsedTime * flap) * amp
+    if (rightWing.current) rightWing.current.rotation.z = -0.35 - Math.sin(state.clock.elapsedTime * flap) * amp
   })
 
   return (
     <group name={`coast-bird-${seed}`} ref={group} scale={scale}>
-      <mesh scale={[1.4, 0.5, 0.58]}>
-        <sphereGeometry args={[0.13, 8, 6]} />
-        <meshStandardMaterial color="#f8f4dd" roughness={0.7} />
+      {/* Stylized mangrove egret — body, head, beak, flappable wing plates */}
+      <mesh scale={[1.15, 0.7, 0.7]} castShadow>
+        <sphereGeometry args={[0.14, 10, 8]} />
+        <meshStandardMaterial color={body} roughness={0.62} flatShading />
       </mesh>
-      <mesh ref={leftWing} position={[-0.25, 0, 0]} rotation={[0, 0, 1.05]}>
-        <coneGeometry args={[0.17, 0.5, 3]} />
-        <meshStandardMaterial color="#f8f4dd" roughness={0.7} />
+      <mesh position={[0.18, 0.1, 0]} scale={[0.75, 0.72, 0.72]}>
+        <sphereGeometry args={[0.1, 8, 6]} />
+        <meshStandardMaterial color={body} roughness={0.6} flatShading />
       </mesh>
-      <mesh ref={rightWing} position={[0.25, 0, 0]} rotation={[0, 0, -1.05]}>
-        <coneGeometry args={[0.17, 0.5, 3]} />
-        <meshStandardMaterial color="#f8f4dd" roughness={0.7} />
+      <mesh position={[0.3, 0.06, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.035, 0.16, 5]} />
+        <meshStandardMaterial color={beak} roughness={0.45} flatShading />
       </mesh>
+      <mesh position={[0.22, 0.14, 0.06]}>
+        <sphereGeometry args={[0.028, 6, 4]} />
+        <meshStandardMaterial color="#1a2f34" />
+      </mesh>
+      <mesh position={[-0.18, 0.02, 0]} rotation={[0, 0, Math.PI / 2]} scale={[0.55, 1, 0.35]}>
+        <coneGeometry args={[0.08, 0.2, 4]} />
+        <meshStandardMaterial color={wing} roughness={0.65} flatShading />
+      </mesh>
+      <group ref={leftWing} position={[-0.02, 0.04, 0.08]} rotation={[0.15, 0.2, 0.35]}>
+        <mesh position={[0, 0, 0.16]} scale={[0.55, 0.12, 1]}>
+          <boxGeometry args={[0.28, 0.04, 0.42]} />
+          <meshStandardMaterial color={wing} roughness={0.58} flatShading />
+        </mesh>
+        <mesh position={[0.02, -0.01, 0.34]} scale={[0.4, 0.08, 0.55]}>
+          <boxGeometry args={[0.22, 0.03, 0.28]} />
+          <meshStandardMaterial color={tip} roughness={0.6} flatShading />
+        </mesh>
+      </group>
+      <group ref={rightWing} position={[-0.02, 0.04, -0.08]} rotation={[-0.15, -0.2, -0.35]}>
+        <mesh position={[0, 0, -0.16]} scale={[0.55, 0.12, 1]}>
+          <boxGeometry args={[0.28, 0.04, 0.42]} />
+          <meshStandardMaterial color={wing} roughness={0.58} flatShading />
+        </mesh>
+        <mesh position={[0.02, -0.01, -0.34]} scale={[0.4, 0.08, 0.55]}>
+          <boxGeometry args={[0.22, 0.03, 0.28]} />
+          <meshStandardMaterial color={tip} roughness={0.6} flatShading />
+        </mesh>
+      </group>
     </group>
   )
 }
