@@ -80,6 +80,7 @@ export function installWorldDiagnostics({ gl, scene, camera, plotPositions, fram
         birds: actors.filter((a) => a.name.startsWith('coast-bird-')).length,
         fish: actors.filter((a) => a.name.startsWith('coast-fish-')).length,
       },
+      plotWildlife: Boolean(scene.getObjectByName('plot-wildlife')),
       hudCompact: beat?.hudCompact ?? null,
       photoMode: beat?.photoMode ?? false,
       plots: plotPositions.map(([x, z], index) => {
