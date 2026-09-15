@@ -7,7 +7,8 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
-import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey } from './character-speech.js'
+import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey } from './character-speech.js'
+import { cliffhangerFor } from './dawn-cliffhanger.js'
 
 const SPEAKER_LABELS = { mali: 'มะลิ', non: 'นนท์', ing: 'อิง' }
 
@@ -62,6 +63,7 @@ function App() {
   const habitat = useMemo(() => habitatFor(game), [game])
   const forecast = forecastFor(game.day)
   const forecastEvent = EVENTS.find((e) => e.id === forecast.eventId)
+  const dayPlanCliff = cliffhangerFor(game)
   const playChime = () => {
     if (!sound) return
     try {
@@ -347,10 +349,12 @@ function App() {
 
     setGame((current) => {
       if (current.event) return current
+      const cliff = cliffhangerFor(current)
       const result = advanceDay(current)
       let next = appendLog(result.game, `Day ${result.report.day}: Carbon +${result.report.carbon.toFixed(1)} tCO₂e`, 'day')
       if (result.report.deaths) next = appendLog(next, `ต้นไม้ไม่รอด ${result.report.deaths} ต้น · ตรวจ Fit และสุขภาพ`, 'warning')
-      setDayReport(result.report)
+      setDayReport({ ...result.report, cliffhanger: cliff })
+      if (!cliff.hasContract) speakMali(cliff.maliTip || maliSpeechForTomorrowWait(), 'tomorrow-wait')
       setSelectedPlot(null)
       setNotice(next.event ? 'เหตุการณ์ที่พยากรณ์ไว้มาถึงแล้ว' : `วันใหม่ · ทีมภาคสนามพร้อม 2 งาน · Carbon +${result.report.carbon.toFixed(1)}`)
       return next
@@ -747,7 +751,7 @@ function App() {
           <button onClick={() => setSound((v) => !v)} aria-label={sound ? 'ปิดเสียง' : 'เปิดเสียง'} aria-pressed={sound}><GameIcon name="sound" /><span>{sound ? 'เสียงเปิด' : 'เสียงปิด'}</span></button>
         </nav>
         {game.journey.combo >= 2 && <div className="combo-banner" key={`${game.day}-${game.journey.combo}`}>PERFECT PLANT <b>×{game.journey.combo}</b><span>คืนทุน +{game.journey.combo * 4} ● ต่อการปลูกที่เหมาะสม</span></div>}
-        {dayReport && <div className="day-report" role="status"><button onClick={() => setDayReport(null)} aria-label="ปิดสรุปวัน">×</button><small>รุ่งเช้าวันที่ {dayReport.day}</small><strong>+{dayReport.carbon.toFixed(1)} <span>tCO₂e</span></strong><p>{dayReport.mature ? `🌳 โตเต็มที่ ${dayReport.mature} ต้น · ` : ''}รายได้ +{dayReport.income} ●{dayReport.deaths ? ` · ไม่รอด ${dayReport.deaths} ต้น` : ''}</p></div>}
+        {dayReport && <div className="day-report" role="status"><button onClick={() => setDayReport(null)} aria-label="ปิดสรุปวัน">×</button><small>รุ่งเช้าวันที่ {dayReport.day}</small><strong>+{dayReport.carbon.toFixed(1)} <span>tCO₂e</span></strong><p>{dayReport.mature ? `🌳 โตเต็มที่ ${dayReport.mature} ต้น · ` : ''}รายได้ +{dayReport.income} ●{dayReport.deaths ? ` · ไม่รอด ${dayReport.deaths} ต้น` : ''}</p>{dayReport.cliffhanger && <div className="day-report-cliff" data-forecast-tomorrow={dayReport.cliffhanger.tomorrowLabel} {...(dayReport.cliffhanger.hasContract ? { 'data-contract-days-left': dayReport.cliffhanger.contractDaysLeft } : {})}><span className="day-report-cliff-forecast">พรุ่งนี้: {dayReport.cliffhanger.tomorrowLabel}</span>{dayReport.cliffhanger.hasContract && <span className="day-report-cliff-contract">อีก {dayReport.cliffhanger.contractDaysLeft} วันส่งงาน</span>}</div>}</div>}
         <nav className="plant-dock" aria-label="เลือกพันธุ์ไม้">
           <div className="dock-caption"><small>NURSERY LV.{game.upgrades.nursery}</small><strong>เลือกพันธุ์ · ดูแปลง · ยืนยันปลูก</strong></div>
           {Object.entries(SPECIES).map(([key, species]) => {
