@@ -270,9 +270,36 @@ try {
   check('earned carbon can be verified and sold through the collapsed economy panel')
   await page.getByRole('button',{name:'โหมดชมวิว',exact:true}).click()
   assert.equal(await page.locator('.game-ui').isVisible(),false)
+  await page.waitForFunction(() => {
+    const shell = document.querySelector('.game3d-shell')
+    return shell?.getAttribute('data-photo-mode') === 'true'
+  }, null, { timeout: 10000 })
+  const photoDiag = await page.evaluate(() => {
+    const shell = document.querySelector('.game3d-shell')
+    const brand = document.querySelector('[data-title-brand]')
+    return {
+      dataPhoto: shell?.getAttribute('data-photo-mode'),
+      classPhoto: shell?.classList.contains('photo-mode') === true,
+      titleBrand: brand?.getAttribute('data-title-brand') || null,
+      photoMode: window.__coastDiagnostics?.()?.photoMode ?? window.__coastBeat?.photoMode ?? null,
+      chrome: Boolean(document.querySelector('.photo-mode-chrome')),
+    }
+  })
+  assert.equal(photoDiag.dataPhoto, 'true', 'data-photo-mode must be true in photo mode')
+  assert.ok(photoDiag.classPhoto, 'shell must have photo-mode class')
+  assert.equal(photoDiag.titleBrand, 'mangrove-bay', 'data-title-brand must be mangrove-bay')
+  assert.equal(photoDiag.photoMode, true, 'diagnostics.photoMode must be true')
+  assert.ok(photoDiag.chrome, 'photo-mode-chrome must be present')
+  check('photo mode exposes data-photo-mode, title brand, and diagnostics.photoMode')
   await shot(page,'desktop-photo')
   await page.keyboard.press('Escape')
   assert.equal(await page.locator('.game-ui').isVisible(),true)
+  const photoOff = await page.evaluate(() => ({
+    dataPhoto: document.querySelector('.game3d-shell')?.getAttribute('data-photo-mode'),
+    photoMode: window.__coastDiagnostics?.()?.photoMode ?? window.__coastBeat?.photoMode ?? null,
+  }))
+  assert.equal(photoOff.dataPhoto, 'false')
+  assert.equal(photoOff.photoMode, false)
   check('photo mode hides HUD and Escape restores play')
   await shot(page,'desktop-played')
 
