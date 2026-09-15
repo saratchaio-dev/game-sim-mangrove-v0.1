@@ -16,6 +16,9 @@ import {
   ingSpeechForSurvey,
   ingSpeechForWildlifeDrip,
   nonSpeechForWildlifeDrip,
+  nonSpeechForStorm,
+  nonSpeechForKingtide,
+  ingSpeechForMrv,
   createSpeech,
 } from '../src/character-speech.js'
 
@@ -106,4 +109,34 @@ test('maliSpeechForStreak returns Thai lines by streak tier', () => {
   assert.equal(maliSpeechForStreak(3), 'สามงานติด! ทีมฟื้นฟูกำลังร้อนแรง')
   assert.equal(maliSpeechForStreak(4), '4 งานติด! โบนัสต่อเนื่องเต็มกำลัง')
   assert.equal(maliSpeechForStreak(6, true), 'สถิติใหม่ 6 งานติด! ส่งมอบยอดเยี่ยมมาก')
+})
+
+test('Non storm and kingtide resolve lines include event title when provided', () => {
+  assert.equal(
+    nonSpeechForStorm('มรสุมกำลังเข้า'),
+    'รับมือมรสุมกำลังเข้า แล้ว — ตรวจต้นอ่อนและซ่อมจุดอ่อนต่อได้เลย',
+  )
+  assert.equal(
+    nonSpeechForStorm(),
+    'มรสุมผ่านไปแล้ว — ตรวจต้นอ่อนและซ่อมจุดอ่อนต่อได้เลย',
+  )
+  assert.equal(
+    nonSpeechForStorm(''),
+    'มรสุมผ่านไปแล้ว — ตรวจต้นอ่อนและซ่อมจุดอ่อนต่อได้เลย',
+  )
+  assert.equal(
+    nonSpeechForKingtide('น้ำทะเลหนุนสูงผิดปกติ'),
+    'ผ่านน้ำทะเลหนุนสูงผิดปกติ มาแล้ว — แนวชายฝั่งยังอยู่ ดูแลรากต่อนะ',
+  )
+  assert.equal(
+    nonSpeechForKingtide(),
+    'น้ำหนุนผ่านไปแล้ว — แนวชายฝั่งยังอยู่ ดูแลรากต่อนะ',
+  )
+})
+
+test('Ing MRV line includes verified amount when provided', () => {
+  assert.equal(ingSpeechForMrv(8.4), 'ออกเครดิตแล้ว 8.4 tCO₂e — ป่าพิสูจน์คุณค่าแล้ว')
+  assert.equal(ingSpeechForMrv(12), 'ออกเครดิตแล้ว 12 tCO₂e — ป่าพิสูจน์คุณค่าแล้ว')
+  assert.equal(ingSpeechForMrv(), 'ออกเครดิต MRV แล้ว — ป่าพิสูจน์คุณค่าแล้ว')
+  assert.equal(ingSpeechForMrv(0), 'ออกเครดิต MRV แล้ว — ป่าพิสูจน์คุณค่าแล้ว')
 })

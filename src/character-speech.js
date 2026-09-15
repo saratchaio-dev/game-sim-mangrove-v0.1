@@ -80,3 +80,24 @@ export function maliSpeechForStreak(streak, bestUpdated = false) {
   if (bestUpdated) return `สถิติใหม่ ${n} งานติด! ส่งมอบยอดเยี่ยมมาก`
   return `${n} งานติด! โบนัสต่อเนื่องเต็มกำลัง`
 }
+
+export function nonSpeechForStorm(eventTitle) {
+  return eventTitle
+    ? `รับมือ${eventTitle} แล้ว — ตรวจต้นอ่อนและซ่อมจุดอ่อนต่อได้เลย`
+    : 'มรสุมผ่านไปแล้ว — ตรวจต้นอ่อนและซ่อมจุดอ่อนต่อได้เลย'
+}
+
+export function nonSpeechForKingtide(eventTitle) {
+  return eventTitle
+    ? `ผ่าน${eventTitle} มาแล้ว — แนวชายฝั่งยังอยู่ ดูแลรากต่อนะ`
+    : 'น้ำหนุนผ่านไปแล้ว — แนวชายฝั่งยังอยู่ ดูแลรากต่อนะ'
+}
+
+export function ingSpeechForMrv(verifiedAmount) {
+  const amount = Number(verifiedAmount)
+  if (Number.isFinite(amount) && amount > 0) {
+    const shown = Number.isInteger(amount) ? String(amount) : amount.toFixed(1)
+    return `ออกเครดิตแล้ว ${shown} tCO₂e — ป่าพิสูจน์คุณค่าแล้ว`
+  }
+  return 'ออกเครดิต MRV แล้ว — ป่าพิสูจน์คุณค่าแล้ว'
+}
