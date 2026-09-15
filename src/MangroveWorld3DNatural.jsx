@@ -966,7 +966,7 @@ function Crab({ position, seed = 0, plantCue = null }) {
   })
 
   return (
-    <group name={`coast-crab-${seed}`} ref={group} position={position} scale={0.56}>
+    <group name={`coast-crab-${seed}`} ref={group} position={position} scale={0.85}>
       <mesh scale={[1.3, 0.54, 1]} castShadow>
         <sphereGeometry args={[0.21, 8, 6]} />
         <meshStandardMaterial color="#ef5d46" roughness={0.78} flatShading />
@@ -1078,10 +1078,16 @@ function Wildlife({ plots, communityLevel, habitatStage = 0, plantCue = null, di
     living, mature, stage: habitatStage, communityLevel,
   })
   const gate = plotWildlifeForDiscovery(discovered)
-  // Empty journal → no fauna spam; discovered ids unlock / boost near living plots.
-  const crabCount = gate.showCrabs ? Math.max(living > 0 ? 1 : 0, base.crabs) : 0
-  const fishCount = gate.showFish ? Math.max(living > 0 ? 1 : 0, base.fish) : 0
-  const birdCount = gate.showBirds ? Math.max(mature > 0 || living > 0 ? 1 : 0, base.birds) : 0
+  // Shore fauna follows habitat growth; journal discovery boosts counts and unlocks plot wildlife.
+  const crabCount = Math.max(
+    living >= 2 ? 1 : 0,
+    gate.showCrabs ? Math.max(living > 0 ? 2 : 0, base.crabs) : Math.min(base.crabs, living >= 2 ? 2 : 0),
+  )
+  const fishCount = Math.max(
+    living >= 3 ? 1 : 0,
+    gate.showFish ? Math.max(living > 0 ? 1 : 0, base.fish) : Math.min(base.fish, living >= 3 ? 1 : 0),
+  )
+  const birdCount = gate.showBirds ? Math.max(mature > 0 || living > 0 ? 1 : 0, base.birds) : Math.min(base.birds, mature >= 1 ? 1 : 0)
 
   return (
     <group>
@@ -1122,12 +1128,13 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
       {crabs.map((plot, index) => {
         const [x, y, z] = plotPosition(plot.id)
         return (
-          <Crab
-            key={`plot-crab-${plot.id}`}
-            position={[x + 0.55 + (index % 2) * 0.15, y + 0.02, z + 0.35]}
-            seed={plot.id + 40}
-            plantCue={plantCue}
-          />
+          <group key={`plot-crab-${plot.id}`} scale={1.45} position={[0, 0.05, 0]}>
+            <Crab
+              position={[x + 0.7 + (index % 2) * 0.2, y + 0.04, z + 0.55]}
+              seed={plot.id + 40}
+              plantCue={plantCue}
+            />
+          </group>
         )
       })}
       {fish.map((plot, index) => {
