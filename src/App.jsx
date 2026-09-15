@@ -629,7 +629,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}

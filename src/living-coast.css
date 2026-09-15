@@ -478,3 +478,31 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
   margin: 0; font-size: 12px; line-height: 1.5; color: #3f5f52;
   padding: 8px 10px; border-radius: 10px; background: #eef7ea;
 }
+
+.game3d-shell[data-streak-theater] {
+  --streak-vignette: rgba(40, 18, 4, 0.28);
+}
+.game3d-shell[data-streak-theater="3"] {
+  --streak-vignette: rgba(55, 24, 4, 0.34);
+}
+.game3d-shell[data-streak-theater="4"],
+.game3d-shell[data-streak-theater="5"],
+.game3d-shell[data-streak-theater="6"],
+.game3d-shell[data-streak-theater="7"],
+.game3d-shell[data-streak-theater="8"] {
+  --streak-vignette: rgba(70, 28, 2, 0.42);
+}
+.game3d-shell[data-streak-theater]::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: radial-gradient(ellipse at center, transparent 42%, var(--streak-vignette) 100%);
+  animation: streak-theater-fade 1.8s ease-out forwards;
+}
+@keyframes streak-theater-fade {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
