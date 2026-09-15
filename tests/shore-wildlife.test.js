@@ -42,14 +42,32 @@ test('SceneryBatch skips empty instances and keeps static draw usage', () => {
 test('plotWildlifeForDiscovery gates fauna by journal ids', () => {
   assert.deepEqual(plotWildlifeForDiscovery([]), {
     showCrabs: false, showFish: false, showBirds: false, showFireflies: false,
+    showMudskipper: false, showHeron: false, showKingfisher: false,
+    crabBoost: 0, fishBoost: 0, birdBoost: 0,
   })
   assert.deepEqual(plotWildlifeForDiscovery(['crab']), {
     showCrabs: true, showFish: false, showBirds: false, showFireflies: false,
+    showMudskipper: false, showHeron: false, showKingfisher: false,
+    crabBoost: 0, fishBoost: 0, birdBoost: 0,
   })
   assert.deepEqual(plotWildlifeForDiscovery(['crab', 'fish', 'bird', 'firefly']), {
     showCrabs: true, showFish: true, showBirds: true, showFireflies: true,
+    showMudskipper: false, showHeron: false, showKingfisher: false,
+    crabBoost: 0, fishBoost: 0, birdBoost: 0,
   })
   assert.deepEqual(plotWildlifeForDiscovery(undefined), {
     showCrabs: false, showFish: false, showBirds: false, showFireflies: false,
+    showMudskipper: false, showHeron: false, showKingfisher: false,
+    crabBoost: 0, fishBoost: 0, birdBoost: 0,
   })
+})
+
+test('plotWildlifeForDiscovery set-2 boosts crabs/fish/birds', () => {
+  const gate = plotWildlifeForDiscovery(['mudskipper', 'heron', 'kingfisher'])
+  assert.equal(gate.showMudskipper, true)
+  assert.equal(gate.showHeron, true)
+  assert.equal(gate.showKingfisher, true)
+  assert.equal(gate.crabBoost, 2)
+  assert.equal(gate.fishBoost, 1)
+  assert.equal(gate.birdBoost, 2)
 })

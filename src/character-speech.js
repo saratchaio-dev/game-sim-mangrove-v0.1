@@ -101,3 +101,18 @@ export function ingSpeechForMrv(verifiedAmount) {
   }
   return 'ออกเครดิต MRV แล้ว — ป่าพิสูจน์คุณค่าแล้ว'
 }
+
+export function maliSpeechForBayCelebration() {
+  return 'อ่าวฟื้นเต็มร้อย! ป่าชายเลนกลับมามีชีวิตสมบูรณ์แล้ว'
+}
+
+export function ingSpeechForRankUp(rankName) {
+  const name = rankName || 'ยศใหม่'
+  return `ขึ้นยศ「${name}」แล้ว — อ่าวจดจำทุกก้าวของทีมเรา`
+}
+
+export function maliSpeechForMaxLegend(rankName) {
+  const name = rankName || 'มรดกป่าชายเลน'
+  return `「${name}」— มรดกของอ่าวอยู่กับเราแล้ว ดูแลต่อไปนะ`
+}
+

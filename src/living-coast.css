@@ -530,3 +530,27 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
   16% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.game3d-shell[data-late-game-celebration] {
+  --late-vignette: rgba(18, 56, 40, 0.32);
+}
+.game3d-shell[data-late-game-celebration="rank"] {
+  --late-vignette: rgba(24, 48, 72, 0.34);
+}
+.game3d-shell[data-late-game-celebration="max-legend"] {
+  --late-vignette: rgba(70, 40, 8, 0.4);
+}
+.game3d-shell[data-late-game-celebration]::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: radial-gradient(ellipse at center, transparent 40%, var(--late-vignette) 100%);
+  animation: late-game-celebration-fade 1.9s ease-out forwards;
+}
+@keyframes late-game-celebration-fade {
+  0% { opacity: 0; }
+  16% { opacity: 1; }
+  100% { opacity: 0; }
+}
