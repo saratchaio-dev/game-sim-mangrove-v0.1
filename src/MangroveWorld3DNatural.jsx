@@ -939,7 +939,7 @@ const DecorativeMangroves = memo(function DecorativeMangroves() {
 })
 
 
-function Crab({ position, seed = 0, plantCue = null }) {
+function Crab({ position, seed = 0, plantCue = null, scale = 0.85, roam = 0.6, alwaysAnimate = false, busy = false }) {
   const group = useRef()
   const claws = useRef()
   const lastCue = useRef(null)
@@ -952,21 +952,23 @@ function Crab({ position, seed = 0, plantCue = null }) {
       lastCue.current = plantCue
       cueUntil.current = state.clock.elapsedTime + 1
     }
-    const excited = state.clock.elapsedTime < cueUntil.current
+    const excited = state.clock.elapsedTime < cueUntil.current || busy
     group.current.userData.shoreCue = excited
-    const step = motionDue(state.clock.elapsedTime, delta)
-    if (!step && !excited) return
-    const spin = excited ? 0.55 : 0.2
-    const claw = excited ? 0.55 : 0.22
-    group.current.rotation.y = Math.sin(state.clock.elapsedTime * (excited ? 2.4 : 1) + seed) * spin
-    if (claws.current) claws.current.rotation.z = Math.sin(state.clock.elapsedTime * (excited ? 7 : 3) + seed) * claw
-    const t = state.clock.elapsedTime * .4 + seed
-    group.current.position.x = position[0] + Math.sin(t) * .6
-    group.current.position.z = position[2] + Math.cos(t * .7) * .2
+    const step = alwaysAnimate ? delta : motionDue(state.clock.elapsedTime, delta)
+    if (!step && !excited && !alwaysAnimate) return
+    const speed = alwaysAnimate ? 1.35 : (excited ? 2.4 : 1)
+    const spin = excited || alwaysAnimate ? 0.85 : 0.2
+    const claw = excited || alwaysAnimate ? 0.7 : 0.22
+    const t = state.clock.elapsedTime * (alwaysAnimate ? 1.1 : 0.4) + seed
+    group.current.rotation.y = Math.atan2(Math.cos(t) * roam, Math.sin(t) * roam * 0.55) + Math.sin(t * 2) * 0.15
+    if (claws.current) claws.current.rotation.z = Math.sin(state.clock.elapsedTime * (alwaysAnimate ? 9 : excited ? 7 : 3) + seed) * claw
+    group.current.position.x = position[0] + Math.sin(t) * roam
+    group.current.position.y = position[1] + (alwaysAnimate ? 0.06 + Math.abs(Math.sin(t * 4)) * 0.04 : 0)
+    group.current.position.z = position[2] + Math.cos(t * 0.85) * roam * 0.7
   })
 
   return (
-    <group name={`coast-crab-${seed}`} ref={group} position={position} scale={0.85}>
+    <group name={`coast-crab-${seed}`} ref={group} position={position} scale={scale}>
       <mesh scale={[1.3, 0.54, 1]} castShadow>
         <sphereGeometry args={[0.21, 8, 6]} />
         <meshStandardMaterial color="#ef5d46" roughness={0.78} flatShading />
@@ -1128,13 +1130,16 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
       {crabs.map((plot, index) => {
         const [x, y, z] = plotPosition(plot.id)
         return (
-          <group key={`plot-crab-${plot.id}`} scale={1.45} position={[0, 0.05, 0]}>
-            <Crab
-              position={[x + 0.7 + (index % 2) * 0.2, y + 0.04, z + 0.55]}
-              seed={plot.id + 40}
-              plantCue={plantCue}
-            />
-          </group>
+          <Crab
+            key={`plot-crab-${plot.id}`}
+            position={[x + 0.85 + (index % 2) * 0.25, y + 0.12, z + 0.7]}
+            seed={plot.id + 40}
+            plantCue={plantCue}
+            scale={1.55}
+            roam={1.15}
+            alwaysAnimate
+            busy
+          />
         )
       })}
       {fish.map((plot, index) => {
