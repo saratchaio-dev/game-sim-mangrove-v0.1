@@ -128,7 +128,62 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
 .day-report strong span { font-size: 10px; }
 .day-report p { font-size: 10px; margin: 0; color: #617a5c; }
 .photo-mode .game-ui { display: none; }
-.photo-exit { position: absolute; z-index: 25; left: 24px; bottom: 24px; border: 1px solid #fff9da; padding: 12px 18px; border-radius: 14px; color: #335c4b; background: #fffdf3ed; cursor: pointer; }
+.photo-mode-chrome {
+  position: absolute; inset: 0; z-index: 24; pointer-events: none;
+  background:
+    linear-gradient(#0d2a3088, transparent 22%),
+    linear-gradient(transparent 78%, #0d2a3077);
+}
+.photo-mode-title {
+  position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+  text-align: center; color: #f7fff8; text-shadow: 0 2px 16px #0b2430aa;
+}
+.photo-mode-title strong { display: block; letter-spacing: .18em; font-size: 18px; }
+.photo-mode-title small {
+  display: block; margin-top: 6px; letter-spacing: .08em; font-size: 11px; color: #d7eee4;
+}
+.photo-exit {
+  position: absolute; z-index: 25; left: 24px; bottom: 24px; border: 1px solid #fff9da;
+  padding: 12px 18px; border-radius: 14px; color: #335c4b; background: #fffdf3ed; cursor: pointer;
+  pointer-events: auto; box-shadow: 0 10px 28px #12353f44;
+}
+.photo-mode-hint {
+  position: absolute; right: 24px; bottom: 28px; color: #e7f6ef; font-size: 11px;
+  letter-spacing: .04em; text-shadow: 0 1px 8px #0b2430aa;
+}
+.brand-plaque[data-title-brand="mangrove-bay"] strong { letter-spacing: .12em; }
+.title-screen { position: relative; overflow: hidden; }
+.title-hero {
+  position: relative; height: 92px; margin: -8px -8px 16px; border-radius: 18px;
+  background: linear-gradient(180deg, #7ec8d4 0%, #b7e4c7 48%, #e8f6c8 78%, #c9b896 100%);
+  overflow: hidden; border: 1px solid #d9ecd8;
+}
+.title-sun {
+  position: absolute; right: 18%; top: 14px; width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff6c8, #f0c15a 70%, #e39b3a);
+  box-shadow: 0 0 24px #f6d56a88;
+}
+.title-bay {
+  position: absolute; left: -5%; right: -5%; bottom: 0; height: 34%;
+  background: linear-gradient(180deg, #5eb3c8cc, #2f7f9acc); border-radius: 40% 40% 0 0 / 100% 100% 0 0;
+}
+.title-mangrove {
+  position: absolute; bottom: 18%; width: 18px; height: 42px; border-radius: 8px 8px 2px 2px;
+  background: linear-gradient(180deg, #3f8a4f, #245c38);
+}
+.title-mangrove::before {
+  content: ''; position: absolute; left: 50%; top: -10px; width: 34px; height: 22px;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(circle at 50% 60%, #4ea05a, #2d6b3c 70%);
+}
+.title-mangrove-a { left: 18%; height: 38px; }
+.title-mangrove-b { left: 46%; height: 48px; width: 20px; }
+.title-mangrove-c { left: 72%; height: 36px; }
+.title-tagline { color: #5d7a68 !important; font-size: 13px !important; line-height: 1.55 !important; margin: 4px 0 14px !important; }
+.title-start-button { margin-top: 8px; letter-spacing: .02em; }
+.help-modal.title-screen h2 {
+  font-size: 30px; letter-spacing: .04em; margin: 6px 0 4px;
+}
 .save-warning { position: absolute; top: 75px; left: 50%; transform: translateX(-50%); background: #fff2d4; color: #854b2b; border-radius: 10px; padding: 8px 14px; font-size: 11px; }
 .modal-backdrop { background: #102f3e88; backdrop-filter: blur(9px); padding: 24px; }
 .game-modal { border: 1px solid #fff8df; border-radius: 24px; background: #fffdf3; color: #244d3c; box-shadow: 0 25px 80px #102c3c55; padding: 28px; max-height: calc(100dvh - 48px); overflow-y: auto; }
