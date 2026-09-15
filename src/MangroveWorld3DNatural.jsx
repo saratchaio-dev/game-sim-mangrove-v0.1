@@ -1096,6 +1096,53 @@ function Wildlife({ plots, communityLevel, habitatStage = 0, plantCue = null }) 
   )
 }
 
+
+function PlotWildlife({ plots, discovered = [], plantCue = null }) {
+  const livingPlots = useMemo(
+    () => plots.filter((plot) => plot.species && !plot.dead),
+    [plots],
+  )
+  const crabs = discovered.includes('crab')
+    ? livingPlots.slice(0, Math.min(4, livingPlots.length))
+    : []
+  const fish = discovered.includes('fish')
+    ? livingPlots.filter((plot) => plot.tide === 'สูง' || plot.tide === 'กลาง').slice(0, Math.min(3, livingPlots.length))
+    : []
+  const birds = discovered.includes('bird')
+    ? livingPlots.filter((plot) => plot.age >= 4).slice(0, Math.min(2, livingPlots.length))
+    : []
+
+  return (
+    <group name="plot-wildlife">
+      {crabs.map((plot, index) => {
+        const [x, y, z] = plotPosition(plot.id)
+        return (
+          <Crab
+            key={`plot-crab-${plot.id}`}
+            position={[x + 0.55 + (index % 2) * 0.15, y + 0.02, z + 0.35]}
+            seed={plot.id + 40}
+            plantCue={plantCue}
+          />
+        )
+      })}
+      {fish.map((plot, index) => {
+        const [x, y, z] = plotPosition(plot.id)
+        return (
+          <Fish
+            key={`plot-fish-${plot.id}`}
+            position={[x - 0.2, y - 0.55, z - 0.9]}
+            color={['#ffd166', '#88e0dd', '#ff8d70'][index % 3]}
+            seed={plot.id * 0.7}
+          />
+        )
+      })}
+      {birds.map((plot, index) => (
+        <Bird key={`plot-bird-${plot.id}`} seed={plot.id * 0.9 + index} plantCue={plantCue} />
+      ))}
+    </group>
+  )
+}
+
 function CoastalBarriers({ plots, communityLevel }) {
   const mature = plots.filter((plot) => plot.species && !plot.dead && plot.age >= 6).length
   const count = Math.min(15, Math.max(0, mature + communityLevel * 2))
@@ -1281,7 +1328,7 @@ function MoodLighting({ weather, golden, tideOffset, quality }) {
   )
 }
 
-function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, cameraReset, habitat, clean, protection, action, speech=null, quality, onReady }) {
+function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, discovered = [], cameraReset, habitat, clean, protection, action, speech=null, quality, onReady }) {
   const storm = weather === 'storm' || weather === 'kingtide'
   const crewTarget = useMemo(() => action?.plotId
     ? plotPosition(action.plotId).map((v, i) => i === 0 ? v + .8 : v)
@@ -1321,7 +1368,8 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
 
       <ActionSceneBeat action={action} />
       <Wildlife plots={plots} communityLevel={upgrades.community} habitatStage={habitat?.stage || 0} plantCue={action?.type === 'plant' ? action.id : null} />
-      {fireflies && plots.filter((p) => p.species === 'sonneratia' && !p.dead && p.age >= 6).map((p) => <Sparkles key={p.id} position={plotPosition(p.id).map((v, i) => i === 1 ? v + 1.8 : v)} count={18} scale={[2.8, 2.2, 2.8]} size={3.5} speed={0.6} color="#f6ec87" opacity={0.85} />)}
+      <PlotWildlife plots={plots} discovered={discovered} plantCue={action?.type === 'plant' ? action.id : null} />
+      {fireflies && plots.filter((p) => p.species === 'sonneratia' && !p.dead && p.age >= 6).map((p) => <Sparkles key={`ff-${p.id}`} position={plotPosition(p.id).map((v, i) => i === 1 ? v + 1.8 : v)} count={18} scale={[2.8, 2.2, 2.8]} size={3.5} speed={0.6} color="#f6ec87" opacity={0.85} />)}
       <CoastalBarriers plots={plots} communityLevel={upgrades.community} />
       <Sparkles
         count={28}

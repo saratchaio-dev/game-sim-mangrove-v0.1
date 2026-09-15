@@ -72,6 +72,28 @@ async function workerState(page,index,wanted) {
 }
 async function endDay(page) {
   await page.getByRole('button',{name:'จบวันนี้',exact:true}).click()
+  await page.waitForSelector('.day-plan-cliffhanger, [data-forecast-tomorrow]', { timeout: 15000 })
+  const cliff = await page.evaluate(() => {
+    const modal = document.querySelector('.day-plan-cliffhanger') || document.querySelector('.day-plan-modal')
+    const forecast = modal?.getAttribute('data-forecast-tomorrow')
+      || document.querySelector('[data-forecast-tomorrow]')?.getAttribute('data-forecast-tomorrow')
+      || document.querySelector('[data-forecast-tomorrow]')?.textContent?.trim()
+      || null
+    const daysLeftAttr = modal?.getAttribute('data-contract-days-left')
+      ?? document.querySelector('[data-contract-days-left]')?.getAttribute('data-contract-days-left')
+    const maliTip = document.querySelector('.mali-dawn-tip, .day-plan-cliffhanger [data-character-speech="mali"]')
+    return {
+      forecast: forecast && String(forecast).trim() ? String(forecast).trim() : null,
+      daysLeft: daysLeftAttr === '' || daysLeftAttr == null ? null : String(daysLeftAttr),
+      maliTip: Boolean(maliTip?.textContent?.trim()),
+    }
+  })
+  assert.ok(cliff.forecast, `end-day cliffhanger must expose forecast-tomorrow; got ${JSON.stringify(cliff)}`)
+  assert.ok(cliff.daysLeft != null || cliff.maliTip,
+    `end-day must show contract-days-left or Mali dawn tip; got ${JSON.stringify(cliff)}`)
+  const keys = await page.evaluate(() => Object.keys(localStorage))
+  assert.ok(!keys.some((key) => /cliffhanger|forecast-tomorrow|dawn-tip/i.test(key)),
+    `cliffhanger must not add save keys; got ${keys.join(',')}`)
   await page.getByRole('button',{name:/ยืนยันจบวัน/}).click()
   const g=await state(page)
   if(g.event) {
@@ -251,7 +273,10 @@ try {
   check('soil improvement and contract completion survive reload')
   check('Mali speech is ephemeral: absent after reload and never stored under a new save key')
 
-  for(let i=0;i<6;i++) await endDay(page)
+  // One More Dawn cliffhanger on the end-day panel (asserted inside endDay).
+  await endDay(page)
+  check('end-day cliffhanger shows forecast-tomorrow and contract-days-left or Mali tip')
+  for(let i=0;i<5;i++) await endDay(page)
   assert.equal((await state(page)).day,7)
   assert.equal((await state(page)).plots.filter(p=>p.species&&p.age>=6).length,3)
   await page.getByRole('button',{name:'เปิดแผนภาคสนาม',exact:true}).click()
@@ -364,6 +389,18 @@ try {
   for(const animal of animals1.actors.filter(a=>/coast-crab|coast-fish/.test(a.name))) assert.notDeepEqual(animals2.actors.find(a=>a.name===animal.name).position,animal.position)
   report.restoredRender={calls:animals2.calls,triangles:animals2.triangles,actorCount:animals2.actors.length}
   check('restored habitat adds wildlife whose positions animate')
+  // Discovered journal entries should spawn plot-wildlife actors near planted plots.
+  await page.evaluate((key) => {
+    const g = JSON.parse(localStorage.getItem(key))
+    g.journey = { ...(g.journey || {}), discovered: ['crab', 'fish', 'bird'], sandbox: true }
+    localStorage.setItem(key, JSON.stringify(g))
+  }, saveKey)
+  await page.reload()
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.actors?.length >= 4)
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.plotWildlife === true, null, { timeout: 20000 })
+  const plotFauna = await page.evaluate(() => window.__coastDiagnostics().plotWildlife)
+  assert.equal(plotFauna, true, 'plot-wildlife group must mount when journey.discovered has fauna')
+  check('discovered journal fauna mounts plot-wildlife in the planted plots')
   // Developed habitat must publish numeric wildlife counts via diagnostics.
   const wildlife = animals2.wildlife ?? (await page.evaluate(() => window.__coastDiagnostics()?.wildlife ?? null))
   assert.ok(wildlife, 'diagnostics.wildlife must be published for developed habitat')
