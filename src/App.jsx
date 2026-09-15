@@ -7,7 +7,9 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
-import { SPEECH_MS, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare } from './character-speech.js'
+import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, nonSpeechForPatrol, ingSpeechForSurvey } from './character-speech.js'
+
+const SPEAKER_LABELS = { mali: 'มะลิ', non: 'นนท์', ing: 'อิง' }
 
 const SAVE_KEY = 'mangrove-bay-3d-save-v2'
 
@@ -102,9 +104,10 @@ function App() {
     return () => clearTimeout(timer)
   }, [characterSpeech])
 
-  const speakMali = (text, actionId) => {
-    setCharacterSpeech({ speaker: 'mali', text, actionId, id: String(actionId) })
+  const speakCharacter = (speaker, text, actionId) => {
+    setCharacterSpeech(createSpeech(speaker, text, actionId))
   }
+  const speakMali = (text, actionId) => speakCharacter('mali', text, actionId)
 
   // QA observability only: mirror worldAction into the beat bag read by __coastDiagnostics.
   useEffect(() => {
@@ -210,9 +213,11 @@ function App() {
           ? { ...item, species: speciesKey, age: 0, health, dead: false }
           : item),
       }
+      const firstPerfect = fit === 2 && current.journey.perfect === 0
       next = rewardPlant(next, fit)
       setWorldAction({ type: 'plant', plotId, id: current.stats.planted + 1 })
-      speakMali(maliSpeechForPlant(fit), 'plant')
+      if (firstPerfect) speakMali(maliSpeechForFirstPerfect(), 'first-perfect')
+      else speakMali(maliSpeechForPlant(fit), 'plant')
       next = appendLog(next, `ปลูก${species.short}ในแปลง ${plotId} · ความเหมาะสม ${fit}/2`, 'plant')
       setNotice(fit === 2 ? `ปลูกได้เหมาะมาก! คอมโบ ×${next.journey.combo} · คืนทุน +${next.journey.combo * 4} ● · +16 XP` : `${species.name} · Fit ${fit}/2 · ลองเลือกพันธุ์ให้ตรงน้ำและดินเพื่อรับคอมโบ`)
       return next
@@ -470,8 +475,22 @@ function App() {
     if (!rule.ok) return
     setGame((current) => { const next = crewAction(current, key); return next === current ? current : appendLog(next, `ภาคสนาม: ${rule.name} · ${rule.hint}`, 'care') })
     setWorldAction({ type: key, plotId: key === 'care' ? game.plots.filter((p) => p.species && !p.dead).sort((a,b) => a.health - b.health)[0]?.id : null, id: `${game.day}-${key}` })
-    if (key === 'care') speakMali(maliSpeechForCrewCare(), 'crew-care')
-    setNotice(`${rule.name}สำเร็จ · ${rule.hint}`); playChime()
+    if (key === 'patrol') {
+      const hazardTitle = EVENTS.find((e) => e.id === forecastFor(game.day).eventId)?.title
+      speakCharacter('non', nonSpeechForPatrol(hazardTitle), 'patrol')
+      setNotice(hazardTitle
+        ? `ลาดตระเวนสำเร็จ · เตรียมรับ «${hazardTitle}» แล้ว · ${rule.hint}`
+        : `${rule.name}สำเร็จ · ${rule.hint}`)
+    } else if (key === 'survey') {
+      speakCharacter('ing', ingSpeechForSurvey(), 'survey')
+      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+    } else if (key === 'care') {
+      speakMali(maliSpeechForCrewCare(), 'crew-care')
+      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+    } else {
+      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+    }
+    playChime()
   }
   const handleContractClaim = () => {
     const c = contractProgress(game)
@@ -679,14 +698,14 @@ function App() {
         <div className="notice-toast" role="status"><span>✦</span>{notice}</div>
         {characterSpeech && (
           <div className="character-speech" role="status" data-character-speech={characterSpeech.speaker} data-speech-action={characterSpeech.actionId}>
-            <b>มะลิ</b><span>{characterSpeech.text}</span>
+            <b>{SPEAKER_LABELS[characterSpeech.speaker] || characterSpeech.speaker}</b><span>{characterSpeech.text}</span>
           </div>
         )}
         {saveError && <div className="save-warning" role="alert">บันทึกอัตโนมัติไม่ได้ · อย่าปิดหน้านี้ ความคืบหน้าอาจสูญหาย</div>}
         <div className="camera-tip">ลากฉากเพื่อหมุน · เลื่อนเมาส์เพื่อซูม · คลิกแปลงเพื่อดู Fit ก่อนปลูก</div>
       </div>
 
-      {showRestoration && <ModalBackdrop onClose={() => setShowRestoration(false)}><div className="game-modal restoration-modal"><button className="modal-close" aria-label="ปิดแผนภาคสนาม" onClick={() => setShowRestoration(false)}>×</button><RestorationModal game={game} onCrew={handleCrew} onClaim={handleContractClaim} onAccept={(id) => { setGame((g) => acceptContract(g, id)); setNotice('รับงานแล้ว · ความคืบหน้านับจากตอนรับงาน · ส่งภายใน 3 วันในเกม') }} /></div></ModalBackdrop>}
+      {showRestoration && <ModalBackdrop onClose={() => setShowRestoration(false)}><div className="game-modal restoration-modal"><button className="modal-close" aria-label="ปิดแผนภาคสนาม" onClick={() => setShowRestoration(false)}>×</button><RestorationModal game={game} onCrew={handleCrew} onClaim={handleContractClaim} onAccept={(id) => { const firstContract = game.expedition.completed === 0 && !game.expedition.contract; setGame((g) => acceptContract(g, id)); setNotice('รับงานแล้ว · ความคืบหน้านับจากตอนรับงาน · ส่งภายใน 3 วันในเกม'); if (firstContract) speakMali(maliSpeechForFirstContract(), 'first-contract') }} /></div></ModalBackdrop>}
       {showDayPlan && <ModalBackdrop onClose={() => setShowDayPlan(false)}><div className="game-modal day-plan-modal"><button className="modal-close" aria-label="กลับไปทำงาน" onClick={() => setShowDayPlan(false)}>×</button><small>BEFORE THE NEXT TIDE</small><h2>พักทีม แล้วพบกันพรุ่งนี้</h2><p>ทีมวันนี้ยังทำได้อีก {crewLeft(game)} งาน · ต้นไม้จะเติบโตอีก 1 วัน</p><div className="next-tide-preview"><b>{forecast.eventDay === game.day + 1 ? `พรุ่งนี้: ${forecastEvent.title}` : `พรุ่งนี้: ${forecastFor(game.day + 1).tide}`}</b><span>{habitat.living} ต้นที่กำลังเติบโต · {game.plots.filter((p) => p.species && !p.dead && p.health < 50).length} ต้นสุขภาพต่ำกว่า 50%</span></div>{contractProgress(game)?.deadline === game.day && <p className="deadline-warning">งานฟื้นฟูครบกำหนดวันนี้{contractProgress(game).ready ? ' · ส่งมอบก่อนจบวันเพื่อรับรางวัล' : ' · ถ้าจบวันจะหมดเวลาและรีเซ็ตโบนัสต่อเนื่อง'}</p>}<button className="primary-game-button large" onClick={nextDay}>ยืนยันจบวัน → วันที่ {game.day + 1}</button><button className="secondary-game-button" onClick={() => { setShowDayPlan(false); setShowRestoration(true) }}>กลับไปวางแผน</button></div></ModalBackdrop>}
 
       {showJournal && (

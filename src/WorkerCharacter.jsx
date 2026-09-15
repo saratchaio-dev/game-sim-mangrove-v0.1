@@ -125,9 +125,9 @@ export default function WorkerCharacter({ variant:v, index, action, target, spee
       </group>})}
     </group>
     {relevant&&<Html center position={[0,2,0]} zIndexRange={[2,1]} style={{pointerEvents:'none'}}><div ref={label} className="character-name"><b>{v.name} · {labels[task.state]}</b></div></Html>}
-    {v.id==='mali' && speech?.speaker==='mali' && speech?.text && (
+    {speech?.speaker===v.id && speech?.text && (
       <Html center position={[0,2.45,0]} zIndexRange={[3,2]} style={{pointerEvents:'none'}}>
-        <div className="character-speech-bubble" data-character-speech="mali">{speech.text}</div>
+        <div className="character-speech-bubble" data-character-speech={v.id}>{speech.text}</div>
       </Html>
     )}
   </group>

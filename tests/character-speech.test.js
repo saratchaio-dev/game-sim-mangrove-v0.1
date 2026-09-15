@@ -5,6 +5,10 @@ import {
   maliSpeechForPlant,
   maliSpeechForCrewCare,
   maliSpeechForPlotCare,
+  maliSpeechForFirstContract,
+  maliSpeechForFirstPerfect,
+  nonSpeechForPatrol,
+  ingSpeechForSurvey,
   createSpeech,
 } from '../src/character-speech.js'
 
@@ -19,6 +23,30 @@ test('crew care and plot care lines are fixed Thai strings', () => {
   assert.equal(maliSpeechForPlotCare(), 'แปลงนี้แข็งแรงขึ้นแล้ว')
 })
 
+test('first-contract and first-perfect Mali lines are fixed Thai strings', () => {
+  assert.equal(maliSpeechForFirstContract(), 'รับงานแล้ว — ส่งภายใน 3 วันในเกม จะได้รางวัลและโบนัสต่อเนื่อง')
+  assert.equal(maliSpeechForFirstPerfect(), 'Fit สมบูรณ์ครั้งแรก! คอมโบเริ่มสะสมแล้ว ปลูกให้เหมาะต่อเนื่องนะ')
+})
+
+test('Non patrol line includes event title when provided', () => {
+  assert.equal(
+    nonSpeechForPatrol('มรสุมกำลังเข้า'),
+    'แนวป้องกันพร้อมแล้ว — รอบถัดไปรับมือ มรสุมกำลังเข้า ได้ดีขึ้น',
+  )
+  assert.equal(
+    nonSpeechForPatrol(),
+    'แนวป้องกันพร้อมแล้ว — พายุ/น้ำหนุนรอบถัดไปจะเบาลง',
+  )
+  assert.equal(
+    nonSpeechForPatrol(''),
+    'แนวป้องกันพร้อมแล้ว — พายุ/น้ำหนุนรอบถัดไปจะเบาลง',
+  )
+})
+
+test('Ing survey line is a fixed Thai string', () => {
+  assert.equal(ingSpeechForSurvey(), 'บันทึกถิ่นอาศัยแล้ว — ความหลากหลายของอ่าวชัดขึ้น')
+})
+
 test('createSpeech returns plain ephemeral data with no save coupling', () => {
   assert.equal(SPEECH_MS, 3500)
   const speech = createSpeech('mali', maliSpeechForPlotCare(), 'plot-care')
@@ -31,4 +59,7 @@ test('createSpeech returns plain ephemeral data with no save coupling', () => {
   assert.equal('localStorage' in speech, false)
   assert.equal('save' in speech, false)
   assert.equal('game' in speech, false)
+  const non = createSpeech('non', nonSpeechForPatrol('น้ำทะเลหนุนสูงผิดปกติ'), 'patrol')
+  assert.equal(non.speaker, 'non')
+  assert.match(non.id, /^patrol-\d+$/)
 })
