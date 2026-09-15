@@ -1012,14 +1012,41 @@ function Fish({ position, color = '#ffd166', seed = 0, scale = 0.65, roam = 1.2,
 
   return (
     <group name={`coast-fish-${seed}`} ref={group} position={position} scale={scale}>
-      <mesh scale={[1.5, 0.64, 0.64]}>
-        <sphereGeometry args={[0.23, 8, 6]} />
-        <meshStandardMaterial color={color} roughness={0.55} transparent={false} opacity={1} />
+      {/* Low-poly silhouette: plump body, dorsal, fins, eye — still one animating tail. */}
+      <mesh scale={[1.55, 0.72, 0.78]} castShadow>
+        <sphereGeometry args={[0.2, 10, 8]} />
+        <meshStandardMaterial color={color} roughness={0.42} metalness={0.08} flatShading />
       </mesh>
-      <mesh ref={tail} position={[-0.48, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.19, 0.4, 3]} />
-        <meshStandardMaterial color={color} transparent={false} opacity={1} />
+      <mesh position={[0.12, 0.16, 0]} rotation={[0, 0, -0.35]} scale={[0.55, 0.7, 0.2]}>
+        <coneGeometry args={[0.12, 0.28, 5]} />
+        <meshStandardMaterial color={color} roughness={0.5} flatShading />
       </mesh>
+      <mesh position={[0.05, -0.12, 0.12]} rotation={[0.6, 0.4, 0.2]} scale={[0.35, 0.2, 0.55]}>
+        <sphereGeometry args={[0.12, 6, 5]} />
+        <meshStandardMaterial color={color} roughness={0.55} flatShading />
+      </mesh>
+      <mesh position={[0.05, -0.12, -0.12]} rotation={[-0.6, -0.4, -0.2]} scale={[0.35, 0.2, 0.55]}>
+        <sphereGeometry args={[0.12, 6, 5]} />
+        <meshStandardMaterial color={color} roughness={0.55} flatShading />
+      </mesh>
+      <mesh position={[0.28, 0.04, 0.12]}>
+        <sphereGeometry args={[0.035, 8, 6]} />
+        <meshBasicMaterial color="#1b2f34" />
+      </mesh>
+      <mesh position={[0.28, 0.04, 0.14]} scale={[0.45, 0.45, 0.2]}>
+        <sphereGeometry args={[0.028, 6, 5]} />
+        <meshBasicMaterial color="#f4fff8" />
+      </mesh>
+      <group ref={tail} position={[-0.42, 0, 0]}>
+        <mesh rotation={[0, 0, -Math.PI / 2]} position={[-0.08, 0, 0]}>
+          <coneGeometry args={[0.16, 0.34, 4]} />
+          <meshStandardMaterial color={color} roughness={0.48} flatShading />
+        </mesh>
+        <mesh rotation={[0, 0, Math.PI / 2]} position={[-0.08, 0, 0]} scale={[1, 0.85, 1]}>
+          <coneGeometry args={[0.12, 0.26, 4]} />
+          <meshStandardMaterial color={color} roughness={0.48} flatShading />
+        </mesh>
+      </group>
     </group>
   )
 }
@@ -1058,18 +1085,43 @@ function Bird({ seed = 0, plantCue = null, center = null, scale = 0.7, roam = 5.
 
   return (
     <group name={`coast-bird-${seed}`} ref={group} scale={scale}>
-      <mesh scale={[1.4, 0.5, 0.58]}>
-        <sphereGeometry args={[0.13, 8, 6]} />
-        <meshStandardMaterial color="#f8f4dd" roughness={0.7} />
+      {/* Compact egret-ish silhouette: body, neck, head, beak, wing planes. */}
+      <mesh scale={[1.15, 0.55, 0.7]} castShadow>
+        <sphereGeometry args={[0.14, 10, 8]} />
+        <meshStandardMaterial color="#f4f0de" roughness={0.62} flatShading />
       </mesh>
-      <mesh ref={leftWing} position={[-0.25, 0, 0]} rotation={[0, 0, 1.05]}>
-        <coneGeometry args={[0.17, 0.5, 3]} />
-        <meshStandardMaterial color="#f8f4dd" roughness={0.7} />
+      <mesh position={[0.16, 0.08, 0]} rotation={[0, 0, -0.55]} scale={[0.28, 0.55, 0.28]}>
+        <cylinderGeometry args={[0.035, 0.05, 0.28, 6]} />
+        <meshStandardMaterial color="#efe9d4" roughness={0.65} flatShading />
       </mesh>
-      <mesh ref={rightWing} position={[0.25, 0, 0]} rotation={[0, 0, -1.05]}>
-        <coneGeometry args={[0.17, 0.5, 3]} />
-        <meshStandardMaterial color="#f8f4dd" roughness={0.7} />
+      <mesh position={[0.28, 0.2, 0]} scale={[0.7, 0.7, 0.7]}>
+        <sphereGeometry args={[0.07, 8, 6]} />
+        <meshStandardMaterial color="#f7f3e4" roughness={0.6} flatShading />
       </mesh>
+      <mesh position={[0.36, 0.18, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.025, 0.12, 5]} />
+        <meshStandardMaterial color="#e0a45a" roughness={0.55} flatShading />
+      </mesh>
+      <mesh position={[0.3, 0.22, 0.045]}>
+        <sphereGeometry args={[0.016, 6, 5]} />
+        <meshBasicMaterial color="#24343a" />
+      </mesh>
+      <mesh position={[-0.18, -0.02, 0]} scale={[0.45, 0.35, 0.35]}>
+        <sphereGeometry args={[0.1, 6, 5]} />
+        <meshStandardMaterial color="#e8e0c8" roughness={0.7} flatShading />
+      </mesh>
+      <group ref={leftWing} position={[-0.02, 0.04, 0]} rotation={[0.15, 0.1, 1.05]}>
+        <mesh position={[-0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]} scale={[0.22, 0.9, 0.55]}>
+          <sphereGeometry args={[0.16, 8, 5]} />
+          <meshStandardMaterial color="#fff8e8" roughness={0.58} flatShading />
+        </mesh>
+      </group>
+      <group ref={rightWing} position={[-0.02, 0.04, 0]} rotation={[0.15, -0.1, -1.05]}>
+        <mesh position={[0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]} scale={[0.22, 0.9, 0.55]}>
+          <sphereGeometry args={[0.16, 8, 5]} />
+          <meshStandardMaterial color="#fff8e8" roughness={0.58} flatShading />
+        </mesh>
+      </group>
     </group>
   )
 }
