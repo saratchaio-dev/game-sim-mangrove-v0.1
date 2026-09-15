@@ -29,6 +29,19 @@ async function open(viewport) {
   await page.waitForFunction(() => window.__coastDiagnostics?.().actors.length >= 4)
   const lighting0 = await assertLighting(page)
   assert.ok(['day', 'golden', 'storm'].includes(lighting0.preset))
+  assert.equal(typeof lighting0.tideOffset, 'number')
+  const forecast0 = await page.evaluate(async () => {
+    const day = JSON.parse(localStorage.getItem('mangrove-bay-3d-save-v2')).day
+    // Inline the same rules as forecastFor for assert without bundling.
+    return {
+      day,
+      golden: day % 6 >= 3,
+      tideOffset: [-0.1, 0, 0.14, 0.03][(day - 1) % 4],
+      expectedPreset: (day % 6 >= 3) ? 'golden' : 'day',
+    }
+  })
+  assert.equal(lighting0.tideOffset, forecast0.tideOffset, 'lighting.tideOffset must match forecast')
+  assert.equal(lighting0.preset, forecast0.expectedPreset, 'clear weather preset follows golden/day from forecast')
   check('mood lighting publishes lighting.preset/sky/fog/tideOffset on diagnostics')
   await page.evaluate(() => document.fonts.ready)
   return page
@@ -297,6 +310,14 @@ try {
   report.restoredRender={calls:animals2.calls,triangles:animals2.triangles,actorCount:animals2.actors.length}
   check('restored habitat adds wildlife whose positions animate')
   // Recorded forecast changes the scene and the actual decision.
+  // Golden day without weather event (day 4 → golden, tideOffset 0.03).
+  await page.evaluate((key)=>{const g=JSON.parse(localStorage.getItem(key));g.day=4;g.event=null;localStorage.setItem(key,JSON.stringify(g))},saveKey)
+  await page.reload()
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.actors?.length >= 4)
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.lighting?.preset)
+  await assertLighting(page, { preset: 'golden', tideOffset: 0.03 })
+  check('golden forecast maps to lighting.preset golden with matching sky/fog/tideOffset')
+  // Storm overrides golden.
   await page.evaluate((key)=>{const g=JSON.parse(localStorage.getItem(key));g.day=25;g.event={id:'storm'};localStorage.setItem(key,JSON.stringify(g))},saveKey)
   await page.reload();await page.waitForSelector('.event-modal')
   await page.waitForFunction(() => window.__coastDiagnostics?.()?.lighting?.preset)
