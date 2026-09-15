@@ -71,3 +71,12 @@ export function nonSpeechForWildlifeDrip(name) {
   return `ดูสิ — ${name}! อ่าวมีชีวิตขึ้นอีกแล้ว`
 }
 
+
+export function maliSpeechForStreak(streak, bestUpdated = false) {
+  const n = Math.max(0, Number(streak) || 0)
+  if (n <= 1) return 'เริ่มต่อเนื่องแล้ว — ส่งงานถัดไปให้ติดกันนะ'
+  if (n === 2) return 'สองงานติด! โบนัสต่อเนื่องกำลังสะสม'
+  if (n === 3) return 'สามงานติด! ทีมฟื้นฟูกำลังร้อนแรง'
+  if (bestUpdated) return `สถิติใหม่ ${n} งานติด! ส่งมอบยอดเยี่ยมมาก`
+  return `${n} งานติด! โบนัสต่อเนื่องเต็มกำลัง`
+}

@@ -9,6 +9,7 @@ import {
   maliSpeechForFirstPerfect,
   maliSpeechForFirstCrab,
   maliSpeechForTomorrowWait,
+  maliSpeechForStreak,
   nonSpeechForClean,
   nonSpeechForPatrol,
   nonSpeechForForecastPrep,
@@ -97,4 +98,12 @@ test('tomorrow-wait Mali tip is a fixed Thai string', () => {
 test('wildlife drip speech lines name the animal in Thai', () => {
   assert.equal(ingSpeechForWildlifeDrip('ปูก้ามดาบ'), 'เจอปูก้ามดาบแล้ว! บันทึกลงสมุดสัตว์นะ')
   assert.equal(nonSpeechForWildlifeDrip('ฝูงปลาวัยอ่อน'), 'ดูสิ — ฝูงปลาวัยอ่อน! อ่าวมีชีวิตขึ้นอีกแล้ว')
+})
+
+test('maliSpeechForStreak returns Thai lines by streak tier', () => {
+  assert.equal(maliSpeechForStreak(1), 'เริ่มต่อเนื่องแล้ว — ส่งงานถัดไปให้ติดกันนะ')
+  assert.equal(maliSpeechForStreak(2), 'สองงานติด! โบนัสต่อเนื่องกำลังสะสม')
+  assert.equal(maliSpeechForStreak(3), 'สามงานติด! ทีมฟื้นฟูกำลังร้อนแรง')
+  assert.equal(maliSpeechForStreak(4), '4 งานติด! โบนัสต่อเนื่องเต็มกำลัง')
+  assert.equal(maliSpeechForStreak(6, true), 'สถิติใหม่ 6 งานติด! ส่งมอบยอดเยี่ยมมาก')
 })
