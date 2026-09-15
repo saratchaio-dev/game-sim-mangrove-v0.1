@@ -506,3 +506,27 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
   18% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.game3d-shell[data-event-speech="storm"] {
+  --event-vignette: rgba(28, 48, 72, 0.36);
+}
+.game3d-shell[data-event-speech="kingtide"] {
+  --event-vignette: rgba(12, 64, 68, 0.34);
+}
+.game3d-shell[data-event-speech="mrv"] {
+  --event-vignette: rgba(24, 56, 28, 0.3);
+}
+.game3d-shell[data-event-speech]::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: radial-gradient(ellipse at 50% 35%, transparent 40%, var(--event-vignette, rgba(28, 48, 72, 0.32)) 100%);
+  animation: event-speech-fade 1.7s ease-out forwards;
+}
+@keyframes event-speech-fade {
+  0% { opacity: 0; }
+  16% { opacity: 1; }
+  100% { opacity: 0; }
+}

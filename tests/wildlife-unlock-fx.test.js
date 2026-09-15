@@ -29,7 +29,9 @@ test('diagnostics expose wildlifeUnlockFx for QA', () => {
 })
 
 test('drip FX does not regress plant/care ActionSceneBeat or bird heading', () => {
-  assert.match(source, /action\.type !== 'plant' && action\.type !== 'care' && action\.type !== 'wildlife-drip'/)
+  assert.match(source, /kinds\.includes\(action\.type\)/)
+  assert.match(source, /'wildlife-drip'/)
+  assert.match(source, /'plant'/)
   const bird = source.slice(source.indexOf('function Bird('), source.indexOf('function Wildlife('))
   assert.match(bird, /Math\.atan2\(vx, vz\) - Math\.PI \/ 2/)
   assert.doesNotMatch(bird, /rotation\.y = -t \+ Math\.PI \/ 2/)
