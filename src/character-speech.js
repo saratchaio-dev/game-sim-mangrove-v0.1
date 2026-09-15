@@ -1,4 +1,4 @@
-/** Ephemeral Mali speech lines — UI-only; never persisted to save/localStorage. */
+/** Ephemeral character speech lines (Mali / Non / Ing) — UI-only; never persisted to save/localStorage. */
 
 export const SPEECH_MS = 3500
 
@@ -14,6 +14,24 @@ export function maliSpeechForCrewCare() {
 
 export function maliSpeechForPlotCare() {
   return 'แปลงนี้แข็งแรงขึ้นแล้ว'
+}
+
+export function maliSpeechForFirstContract() {
+  return 'รับงานแล้ว — ส่งภายใน 3 วันในเกม จะได้รางวัลและโบนัสต่อเนื่อง'
+}
+
+export function maliSpeechForFirstPerfect() {
+  return 'Fit สมบูรณ์ครั้งแรก! คอมโบเริ่มสะสมแล้ว ปลูกให้เหมาะต่อเนื่องนะ'
+}
+
+export function nonSpeechForPatrol(eventTitle) {
+  return eventTitle
+    ? `แนวป้องกันพร้อมแล้ว — รอบถัดไปรับมือ ${eventTitle} ได้ดีขึ้น`
+    : 'แนวป้องกันพร้อมแล้ว — พายุ/น้ำหนุนรอบถัดไปจะเบาลง'
+}
+
+export function ingSpeechForSurvey() {
+  return 'บันทึกถิ่นอาศัยแล้ว — ความหลากหลายของอ่าวชัดขึ้น'
 }
 
 export function createSpeech(speaker, text, actionId) {
