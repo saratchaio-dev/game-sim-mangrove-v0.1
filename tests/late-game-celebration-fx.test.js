@@ -37,3 +37,8 @@ test('late-game celebration does not regress prior beats or bird heading', () =>
   const bird = source.slice(source.indexOf('function Bird('), source.indexOf('function Wildlife('))
   assert.match(bird, /Math\.atan2\(vx, vz\) - Math\.PI \/ 2/)
 })
+
+test('late-game celebration kind allowlist is living-coast|rank-up|prestige', () => {
+  assert.match(app, /\['living-coast', 'rank-up', 'prestige'\]\.includes\(worldAction\.kind\)/)
+  assert.match(source, /\['living-coast', 'rank-up', 'prestige'\]\.includes\(live\.kind\)/)
+})
