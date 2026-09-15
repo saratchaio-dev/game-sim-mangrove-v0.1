@@ -78,15 +78,20 @@ export function crewAction(g, key) {
 const CONTRACTS = {
   roots: { title: 'รากใหม่ที่เหมาะกับพื้นที่', text: 'ปลูก Fit 2/2 เพิ่ม 2 ครั้ง', metric: 'perfect', goal: 2, coins: 95, xp: 35 },
   cleanup: { title: 'คืนชายฝั่งสะอาด', text: 'ส่งทีมเก็บขยะ 2 วัน', metric: 'clean', goal: 2, coins: 75, xp: 30 },
+  carework: { title: 'ดูแลต้นอ่อนให้แข็งแรง', text: 'ส่งทีมดูแลต้นอ่อน 2 ครั้ง', metric: 'care', goal: 2, coins: 85, xp: 32 },
+  patrolprep: { title: 'เตรียมรับมรสุมและน้ำหนุน', text: 'ส่งทีมเตรียมแนวป้องกัน 1 ครั้ง', metric: 'patrol', goal: 1, coins: 90, xp: 35 },
   habitat: { title: 'สำรวจบ้านของสัตว์น้ำ', text: 'ส่งทีมสำรวจถิ่นอาศัย 2 วัน', metric: 'survey', goal: 2, coins: 130, xp: 45 },
   carbon: { title: 'พิสูจน์คุณค่าของป่า', text: 'ออกเครดิต MRV เพิ่ม 8 tCO₂e', metric: 'verified', goal: 8, coins: 160, xp: 50 },
 }
 const metricValue = (g, metric) => metric === 'perfect' ? g.journey.perfect : metric === 'verified' ? g.stats.verified : g.expedition.counters[metric]
 export function contractOffers(g) {
   // Two meaningful alternatives; never offer planting to a full forest.
+  const h = habitatFor(g)
   const types = ['cleanup']
   if (g.plots.filter((p) => !p.species && (p.soil !== 'ทราย' || p.prepared)).length >= 2) types.push('roots')
-  if (habitatFor(g).mature >= 3) types.push('habitat')
+  if (h.living > 0) types.push('carework')
+  if (h.living >= 3) types.push('patrolprep')
+  if (h.mature >= 3) types.push('habitat')
   if (alive(g).length >= 3) types.push('carbon')
   const offset = (g.day - 1 + g.expedition.completed) % types.length
   return [types[offset], types[(offset + 1) % types.length]].filter((id, i, a) => a.indexOf(id) === i).map((id) => ({ id, ...CONTRACTS[id] }))

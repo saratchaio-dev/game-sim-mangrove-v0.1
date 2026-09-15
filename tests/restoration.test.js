@@ -196,3 +196,85 @@ test('contract streak bonus stays min(45, streak*15) and claim does not alter th
   g.expedition.streak = 9
   assert.equal(contractProgress(g).bonus, Math.min(45, g.expedition.streak * 15))
 })
+
+test('carework and patrolprep unlock with living trees and claim via crew counters', () => {
+  const empty = createInitialGame()
+  assert.ok(!contractOffers(empty).some((o) => o.id === 'carework'))
+  assert.ok(!contractOffers(empty).some((o) => o.id === 'patrolprep'))
+
+  const one = forest(1)
+  assert.ok(
+    [1, 2, 3, 4, 5, 6].some((day) => contractOffers({ ...one, day }).some((o) => o.id === 'carework')),
+    'carework enters the offer rotation when living > 0',
+  )
+  assert.ok(![1, 2, 3, 4, 5, 6].some((day) => contractOffers({ ...one, day }).some((o) => o.id === 'patrolprep')))
+
+  let g = { ...one, day: 3 }
+  const careOffer = contractOffers(g).find((o) => o.id === 'carework')
+  assert.ok(careOffer)
+  assert.equal(careOffer.title, 'ดูแลต้นอ่อนให้แข็งแรง')
+  assert.equal(careOffer.text, 'ส่งทีมดูแลต้นอ่อน 2 ครั้ง')
+  assert.equal(careOffer.coins, 85)
+  assert.equal(careOffer.xp, 32)
+  g = acceptContract(g, 'carework')
+  assert.equal(contractProgress(g).value, 0)
+  g.plots = g.plots.map((p) => (p.species ? { ...p, health: 70 } : p))
+  g = crewAction(g, 'care')
+  assert.equal(contractProgress(g).value, 1)
+  g = advanceDay(g).game
+  if (g.event) g = { ...g, event: null }
+  g.plots = g.plots.map((p) => (p.species && !p.dead ? { ...p, health: 70 } : p))
+  g = crewAction(g, 'care')
+  assert.equal(contractProgress(g).ready, true)
+  const afterCare = claimContract(g)
+  assert.equal(afterCare.coins, g.coins + 85)
+  assert.equal(afterCare.journey.xp, g.journey.xp + 32)
+  assert.equal(afterCare.expedition.completed, 1)
+
+  const three = forest(3)
+  assert.ok(
+    [1, 2, 3, 4, 5, 6, 7, 8].some((day) => contractOffers({ ...three, day }).some((o) => o.id === 'patrolprep')),
+    'patrolprep enters the offer rotation when living >= 3',
+  )
+
+  // Patrol is allowed when the next forecast hazard is storm/kingtide (day 4 → event day 5 storm).
+  let p = { ...three, day: 4, event: null }
+  p.expedition = { ...p.expedition, offerDay: 0, contract: null, crewDay: 0, used: [], protectionDay: 0 }
+  // Rotate until patrolprep is one of the two offers without leaving day 4.
+  let accepted = null
+  for (let completed = 0; completed < 12; completed++) {
+    const candidate = {
+      ...p,
+      expedition: { ...p.expedition, completed, offerDay: 0, contract: null },
+    }
+    if (contractOffers(candidate).some((o) => o.id === 'patrolprep')) {
+      accepted = acceptContract(candidate, 'patrolprep')
+      break
+    }
+  }
+  assert.ok(accepted?.expedition.contract?.id === 'patrolprep')
+  p = accepted
+  const patrolOffer = contractProgress(p)
+  assert.equal(patrolOffer.title, 'เตรียมรับมรสุมและน้ำหนุน')
+  assert.equal(patrolOffer.goal, 1)
+  assert.equal(patrolOffer.coins, 90)
+  assert.equal(patrolOffer.xp, 35)
+  assert.equal(contractProgress(p).value, 0)
+  assert.equal(crewRule(p, 'patrol').ok, true)
+  p = crewAction(p, 'patrol')
+  assert.equal(contractProgress(p).ready, true)
+  const paid = claimContract(p)
+  assert.equal(paid.coins, p.coins + 90)
+  assert.equal(paid.journey.xp, p.journey.xp + 35)
+})
+
+test('new contract variants keep two unique offers and still exclude roots on a full forest', () => {
+  const g = forest(16, 6)
+  for (let day = 1; day < 20; day++) {
+    const offers = contractOffers({ ...g, day, expedition: { ...g.expedition, completed: day } })
+    assert.ok(offers.length >= 1 && offers.length <= 2)
+    assert.equal(new Set(offers.map((o) => o.id)).size, offers.length)
+    assert.ok(!offers.some((o) => o.id === 'roots'))
+    assert.ok(offers.every((o) => ['cleanup', 'carework', 'patrolprep', 'habitat', 'carbon'].includes(o.id)))
+  }
+})
