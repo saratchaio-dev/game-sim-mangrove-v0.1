@@ -48,6 +48,7 @@ function App() {
   const [showRestoration, setShowRestoration] = useState(false)
   const [showDayPlan, setShowDayPlan] = useState(false)
   const [photoMode, setPhotoMode] = useState(false)
+  const [hudCompact, setHudCompact] = useState(false)
   const [cameraReset, setCameraReset] = useState(0)
   const [sound, setSound] = useState(false)
   const [saveError, setSaveError] = useState(false)
@@ -123,6 +124,34 @@ function App() {
       else delete window.__coastBeat
     }
   }, [worldAction])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined
+    const query = window.matchMedia('(max-width: 900px), (pointer: coarse) and (max-width: 1200px)')
+    const sync = () => setHudCompact(Boolean(query.matches))
+    sync()
+    query.addEventListener?.('change', sync)
+    query.addListener?.(sync)
+    return () => {
+      query.removeEventListener?.('change', sync)
+      query.removeListener?.(sync)
+    }
+  }, [])
+
+  // QA observability for compact HUD mode.
+  useEffect(() => {
+    if (!(import.meta.env.DEV || import.meta.env.VITE_WORLD_QA === '1')) return
+    if (!new URLSearchParams(location.search).has('qa')) return
+    const prev = window.__coastBeat || {}
+    window.__coastBeat = { ...prev, hudCompact }
+    return () => {
+      if (!window.__coastBeat) return
+      if (window.__coastBeat.hudCompact !== hudCompact) return
+      const { hudCompact: _drop, ...rest } = window.__coastBeat
+      if (Object.keys(rest).length) window.__coastBeat = rest
+      else delete window.__coastBeat
+    }
+  }, [hudCompact])
 
   const derived = useMemo(() => {
     const planted = game.plots.filter((plot) => plot.species)
@@ -534,7 +563,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}`}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}

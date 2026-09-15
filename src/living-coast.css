@@ -311,3 +311,72 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
   .species-tool small, .dock-more small { font-size: 10px; }
 }
 .mrv-hint { color: #6b8373; font-size: 10px; line-height: 1.5; margin: 8px 0 10px; }
+
+/* Slice 4 — compact mobile HUD (class toggled from App). */
+.game3d-shell.hud-compact .brand-plaque small,
+.game3d-shell.hud-compact .coast-status small,
+.game3d-shell.hud-compact .dock-caption,
+.game3d-shell.hud-compact .ranger-card,
+.game3d-shell.hud-compact .fieldwork-button small {
+  display: none;
+}
+.game3d-shell.hud-compact .top-hud {
+  padding: 8px 10px;
+  gap: 6px;
+  grid-template-columns: auto 1fr auto;
+}
+.game3d-shell.hud-compact .brand-plaque {
+  padding: 4px 8px;
+  gap: 6px;
+}
+.game3d-shell.hud-compact .brand-plaque strong {
+  font-size: 10px;
+}
+.game3d-shell.hud-compact .resource-pill {
+  min-width: 58px;
+  padding: 3px 6px;
+  font-size: 10px;
+}
+.game3d-shell.hud-compact .left-stack {
+  top: 56px;
+  left: 8px;
+  width: min(168px, 42vw);
+  gap: 5px;
+}
+.game3d-shell.hud-compact .utility-rail {
+  right: 8px;
+  bottom: 96px;
+  gap: 4px;
+}
+.game3d-shell.hud-compact .utility-rail button {
+  width: 40px;
+  height: 42px;
+  min-width: 40px;
+  min-height: 40px;
+}
+.game3d-shell.hud-compact .plant-dock {
+  left: 8px;
+  right: 8px;
+  bottom: 10px;
+  height: 68px;
+  padding: 6px;
+  gap: 6px;
+  border-radius: 14px;
+}
+.game3d-shell.hud-compact .notice-toast {
+  bottom: 88px;
+  width: calc(100% - 16px);
+  max-width: 420px;
+  min-height: 28px;
+  padding: 6px 10px;
+  font-size: 10px;
+}
+.game3d-shell.hud-compact .character-speech {
+  bottom: 124px;
+  max-width: min(360px, calc(100% - 16px));
+  font-size: 11px;
+}
+.game3d-shell.hud-compact .selected-plot-card {
+  max-width: 180px;
+  padding: 10px;
+}
