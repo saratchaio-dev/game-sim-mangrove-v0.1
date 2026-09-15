@@ -1084,10 +1084,15 @@ function Bird({ seed = 0, plantCue = null, center = null, scale = 0.7, roam = 5.
     const t = state.clock.elapsedTime * (alwaysAnimate ? 0.37 : 0.3) + seed
     if (group.current) {
       const radius = alwaysAnimate ? roam : (5.5 + seed * 0.7)
-      group.current.position.x = cx + Math.cos(t) * radius
-      group.current.position.z = cz + Math.sin(t) * radius
+      const x = cx + Math.cos(t) * radius
+      const z = cz + Math.sin(t) * radius
+      // Beak is modeled along local +X; face velocity so the bird flies forward, not backward.
+      const vx = -Math.sin(t) * radius
+      const vz = Math.cos(t) * radius
+      group.current.position.x = x
+      group.current.position.z = z
       group.current.position.y = height + Math.sin(t * 2) * (alwaysAnimate ? 0.2 : 0.35) + (excited ? 0.25 : 0)
-      group.current.rotation.y = -t + Math.PI / 2
+      group.current.rotation.y = Math.atan2(vx, vz) - Math.PI / 2
     }
     const flap = alwaysAnimate ? 3.2 : (excited ? 9.5 : 5.2)
     const amp = alwaysAnimate ? 0.28 : (excited ? 0.55 : 0.34)
