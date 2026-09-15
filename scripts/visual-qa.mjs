@@ -279,6 +279,25 @@ try {
   const played=await state(page)
   for(const viewport of [{width:1440,height:900},{width:1024,height:768},{width:768,height:1024},{width:390,height:844}]) {
     await page.setViewportSize(viewport)
+    // Phone/tablet widths ≤900 must engage compact HUD chrome.
+    if (viewport.width <= 900) {
+      await page.waitForFunction(() => {
+        const shell = document.querySelector('.game3d-shell')
+        return shell?.classList.contains('hud-compact') || shell?.getAttribute('data-hud-compact') === 'true'
+      }, null, { timeout: 10000 })
+      const compact = await page.evaluate(() => {
+        const shell = document.querySelector('.game3d-shell')
+        return {
+          classCompact: shell?.classList.contains('hud-compact') === true,
+          dataCompact: shell?.getAttribute('data-hud-compact') === 'true',
+          diag: window.__coastDiagnostics?.()?.hudCompact ?? window.__coastBeat?.hudCompact ?? null,
+        }
+      })
+      assert.ok(compact.classCompact || compact.dataCompact,
+        `viewport ${viewport.width} must expose .hud-compact or data-hud-compact=true; got ${JSON.stringify(compact)}`)
+      assert.equal(compact.diag, true, `diagnostics/__coastBeat.hudCompact must be true at width ${viewport.width}`)
+      check(`compact HUD active at viewport width ${viewport.width}`)
+    }
     const l=await layout(page)
     assert.equal(l.overflow,false)
     for(const e of l.elements.filter(e=>e.visible)) {
