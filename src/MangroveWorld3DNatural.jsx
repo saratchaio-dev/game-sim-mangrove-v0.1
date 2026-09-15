@@ -606,27 +606,105 @@ function EventSpeechCue({ eventId = 'storm', seed = 0 }) {
   )
 }
 
+
+function LateGameCelebrationFx({ kind = 'living-coast', seed = 0 }) {
+  const group = useRef()
+  const glow = useRef()
+  const elapsed = useRef(0)
+  const palette = ({
+    'living-coast': { tint: '#7dffb0', soft: '#e8ffe8', count: 22, lift: 2.2 },
+    'rank-up': { tint: '#ffd36a', soft: '#fff4c8', count: 18, lift: 2.0 },
+    prestige: { tint: '#c9a6ff', soft: '#f3e8ff', count: 24, lift: 2.4 },
+  })[kind] || { tint: '#7dffb0', soft: '#e8ffe8', count: 20, lift: 2.1 }
+  const particles = useMemo(() => (
+    Array.from({ length: palette.count }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / palette.count + pseudo(seed * 1.9 + index) * 0.4
+      const radius = 1.2 + pseudo(seed + index) * 1.8
+      return {
+        x: Math.cos(angle) * radius,
+        z: Math.sin(angle) * radius,
+        lift: 1.0 + pseudo(seed * 3 + index) * palette.lift,
+        color: index % 2 ? palette.tint : palette.soft,
+      }
+    })
+  ), [palette.count, palette.lift, palette.soft, palette.tint, seed])
+
+  useFrame((_, delta) => {
+    if (!group.current || elapsed.current >= 2.2) return
+    elapsed.current += delta
+    const progress = Math.min(1, elapsed.current / 2.2)
+    const fade = progress < 0.15 ? progress / 0.15 : Math.max(0, 1 - (progress - 0.15) / 0.85)
+    group.current.visible = progress < 1
+    if (glow.current) {
+      glow.current.material.opacity = 0.3 * fade
+      glow.current.scale.setScalar(1.5 + progress * 2.0)
+    }
+    group.current.children.forEach((child, index) => {
+      if (index === 0) return
+      const particle = particles[index - 1]
+      if (!particle) return
+      child.position.set(
+        particle.x * (0.3 + progress * 1.0),
+        0.5 + progress * particle.lift,
+        particle.z * (0.3 + progress * 1.0),
+      )
+      child.rotation.y += delta * 1.4
+      child.scale.setScalar(0.5 + Math.sin(progress * Math.PI) * 1.1)
+      child.material.opacity = Math.max(0, fade)
+    })
+  })
+
+  return (
+    <group ref={group} position={[0, 0.3, 0]}>
+      <mesh ref={glow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
+        <circleGeometry args={[2.6, 32]} />
+        <meshBasicMaterial color={palette.tint} transparent opacity={0.32} depthWrite={false} />
+      </mesh>
+      {particles.map((particle, index) => (
+        <mesh key={index}>
+          <octahedronGeometry args={[0.1, 0]} />
+          <meshBasicMaterial color={particle.color} transparent opacity={1} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function ActionSceneBeat({ action }) {
   const [live, setLive] = useState(null)
 
   useEffect(() => {
     if (!action?.type) return
-    const kinds = ['plant', 'care', 'wildlife-drip', 'streak-theater', 'event-speech']
+    const kinds = ['plant', 'care', 'wildlife-drip', 'streak-theater', 'event-speech', 'late-game-celebration']
     if (!kinds.includes(action.type)) return
-    if (!action.plotId && action.type !== 'wildlife-drip' && action.type !== 'streak-theater' && action.type !== 'event-speech') return
+    if (!action.plotId && action.type !== 'wildlife-drip' && action.type !== 'streak-theater' && action.type !== 'event-speech' && action.type !== 'late-game-celebration') return
     setLive(action)
     const ms = action.type === 'plant' ? 1450
       : action.type === 'wildlife-drip' ? 1400
       : action.type === 'streak-theater' ? 1800
       : action.type === 'event-speech' ? 1700
+      : action.type === 'late-game-celebration' ? 2200
       : 1000
     const timer = setTimeout(() => {
       setLive((current) => (current?.id === action.id ? null : current))
     }, ms)
     return () => clearTimeout(timer)
-  }, [action?.id, action?.type, action?.plotId, action?.animalId, action?.streak, action?.eventId])
+  }, [action?.id, action?.type, action?.plotId, action?.animalId, action?.streak, action?.eventId, action?.kind])
 
   if (!live?.type) return null
+  if (live.type === 'late-game-celebration') {
+    const kind = ['living-coast', 'rank-up', 'prestige'].includes(live.kind) ? live.kind : 'living-coast'
+    const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.6, -4.8]
+    return (
+      <group
+        name="late-game-celebration-fx"
+        position={pos}
+        userData={{ actionFx: 'late-game-celebration', kind, actionId: live.id }}
+      >
+        <LateGameCelebrationFx kind={kind} seed={String(live.id || kind).length + kind.charCodeAt(0)} />
+      </group>
+    )
+  }
   if (live.type === 'event-speech') {
     const eventId = ['storm', 'kingtide', 'mrv'].includes(live.eventId) ? live.eventId : 'storm'
     const pos = live.plotId != null ? plotPosition(live.plotId) : [0, 0.55, -5.2]

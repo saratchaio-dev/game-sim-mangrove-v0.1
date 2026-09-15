@@ -52,6 +52,9 @@ async function open(viewport) {
   assert.equal(typeof (await page.evaluate(() => window.__coastDiagnostics()?.eventSpeechFx)), 'boolean',
     'diagnostics.eventSpeechFx must be published for event-speech QA')
   check('diagnostics publish eventSpeechFx for event-speech beat')
+  assert.equal(typeof (await page.evaluate(() => window.__coastDiagnostics()?.lateGameCelebrationFx)), 'boolean',
+    'diagnostics.lateGameCelebrationFx must be published for late-game celebration QA')
+  check('diagnostics publish lateGameCelebrationFx for late-game-celebration beat')
   const scenery = await page.evaluate(() => window.__coastDiagnostics().scenery)
   assert.ok(scenery?.batchCount > 0, 'scenery batches should be present')
   assert.ok(scenery.batches.some((b) => b.name === 'sky-clouds'), 'clouds should be instanced as sky-clouds')
