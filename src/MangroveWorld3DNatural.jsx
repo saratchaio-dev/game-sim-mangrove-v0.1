@@ -435,6 +435,77 @@ function CarePulse({ seed = 0 }) {
   )
 }
 
+
+function DiscoverSpark({ seed = 0, tint = '#ffe56a' }) {
+  const group = useRef()
+  const elapsed = useRef(0)
+  const particles = useMemo(() => (
+    Array.from({ length: 12 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 12 + pseudo(seed * 3.1 + index) * 0.35
+      return {
+        x: Math.cos(angle) * (0.7 + pseudo(seed + index) * 0.45),
+        z: Math.sin(angle) * (0.7 + pseudo(seed + index) * 0.45),
+        lift: 0.55 + pseudo(seed * 2 + index) * 0.55,
+        color: index % 2 ? tint : '#fff6c8',
+      }
+    })
+  ), [seed, tint])
+
+  useFrame((_, delta) => {
+    if (!group.current || elapsed.current >= 1.35) return
+    elapsed.current += delta
+    const progress = Math.min(1, elapsed.current / 1.35)
+    group.current.visible = progress < 1
+    group.current.children.forEach((child, index) => {
+      const particle = particles[index]
+      child.position.set(
+        particle.x * progress,
+        0.2 + Math.sin(progress * Math.PI) * particle.lift,
+        particle.z * progress,
+      )
+      child.scale.setScalar(0.55 + Math.sin(progress * Math.PI) * 0.9)
+      child.material.opacity = Math.max(0, 1 - progress)
+    })
+  })
+
+  return (
+    <group ref={group} position={[0, 0.15, 0]}>
+      {particles.map((particle, index) => (
+        <mesh key={index}>
+          <sphereGeometry args={[0.08, 7, 5]} />
+          <meshBasicMaterial color={particle.color} transparent opacity={1} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+function WildlifeUnlockBeat({ unlock, plots }) {
+  const [live, setLive] = useState(null)
+  useEffect(() => {
+    if (!unlock?.id || !unlock?.key) return
+    setLive(unlock)
+    const timer = setTimeout(() => {
+      setLive((current) => (current?.key === unlock.key ? null : current))
+    }, 1400)
+    return () => clearTimeout(timer)
+  }, [unlock?.id, unlock?.key])
+
+  if (!live?.id) return null
+  const living = plots?.filter((plot) => plot.species && !plot.dead) || []
+  const anchor = living[0] ? plotPosition(living[0].id) : [0, 0.5, -6]
+  const tint = ({ crab: '#ff8d70', fish: '#65d7e8', bird: '#f8f4dd', firefly: '#ffe56a' })[live.id] || '#ffe56a'
+  return (
+    <group
+      name="wildlife-unlock-fx"
+      position={anchor}
+      userData={{ wildlifeUnlock: live.id, unlockKey: live.key }}
+    >
+      <DiscoverSpark seed={String(live.key).length + (live.id?.charCodeAt?.(0) || 1)} tint={tint} />
+    </group>
+  )
+}
+
 function ActionSceneBeat({ action }) {
   const [live, setLive] = useState(null)
 
@@ -1448,7 +1519,7 @@ function MoodLighting({ weather, golden, tideOffset, quality }) {
   )
 }
 
-function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, discovered = [], cameraReset, habitat, clean, protection, action, speech=null, quality, onReady }) {
+function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, discovered = [], wildlifeUnlock = null, cameraReset, habitat, clean, protection, action, speech=null, quality, onReady }) {
   const storm = weather === 'storm' || weather === 'kingtide'
   const crewTarget = useMemo(() => action?.plotId
     ? plotPosition(action.plotId).map((v, i) => i === 0 ? v + .8 : v)
@@ -1486,6 +1557,7 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
       ))}
 
       <ActionSceneBeat action={action} />
+      <WildlifeUnlockBeat unlock={wildlifeUnlock} plots={plots} />
       <Wildlife plots={plots} communityLevel={upgrades.community} habitatStage={habitat?.stage || 0} plantCue={action?.type === 'plant' ? action.id : null} />
       <PlotWildlife plots={plots} discovered={discovered} plantCue={action?.type === 'plant' ? action.id : null} />
       <CoastalBarriers plots={plots} communityLevel={upgrades.community} />

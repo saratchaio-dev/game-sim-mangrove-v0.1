@@ -49,6 +49,7 @@ function App() {
   const [showRestoration, setShowRestoration] = useState(false)
   const [showDayPlan, setShowDayPlan] = useState(false)
   const [photoMode, setPhotoMode] = useState(false)
+  const [wildlifeUnlock, setWildlifeUnlock] = useState(null)
   const [hudCompact, setHudCompact] = useState(false)
   const [cameraReset, setCameraReset] = useState(0)
   const [sound, setSound] = useState(false)
@@ -112,6 +113,12 @@ function App() {
     return () => clearTimeout(timer)
   }, [characterSpeech])
 
+  useEffect(() => {
+    if (!wildlifeUnlock) return undefined
+    const timer = setTimeout(() => setWildlifeUnlock(null), 2800)
+    return () => clearTimeout(timer)
+  }, [wildlifeUnlock])
+
   const speakCharacter = (speaker, text, actionId) => {
     setCharacterSpeech(createSpeech(speaker, text, actionId))
   }
@@ -164,7 +171,7 @@ function App() {
     if (!(import.meta.env.DEV || import.meta.env.VITE_WORLD_QA === '1')) return
     if (!new URLSearchParams(location.search).has('qa')) return
     const prev = window.__coastBeat || {}
-    window.__coastBeat = { ...prev, photoMode }
+    window.__coastBeat = { ...prev, photoMode, wildlifeUnlock }
     return () => {
       if (!window.__coastBeat) return
       if (window.__coastBeat.photoMode !== photoMode) return
@@ -212,6 +219,9 @@ function App() {
     const names = newly.map((animal) => animal.name)
     const foundCrab = newly.some((animal) => animal.id === 'crab')
     setGame((current) => settleRestoration(discoverWildlife(current)))
+    if (newly[0]) {
+      setWildlifeUnlock({ id: newly[0].id, key: `${game.day}-${newly[0].id}-${newly.length}` })
+    }
     if (foundCrab) {
       setCharacterSpeech(createSpeech('mali', maliSpeechForFirstCrab(), 'first-crab'))
       setNotice(`🦀 ค้นพบปูก้ามดาบครั้งแรก! ทุนสำรวจ +${next.coins - game.coins} เหรียญ`)
@@ -597,6 +607,7 @@ function App() {
         weather={game.event?.id}
         fireflies={game.journey.discovered.includes('firefly')}
         discovered={game.journey.discovered}
+        wildlifeUnlock={wildlifeUnlock}
         plots={game.plots}
         selectedPlot={selectedPlot}
         activeSpecies={game.activeSpecies}
@@ -794,7 +805,7 @@ function App() {
           <small>THE BAY IS COMING BACK</small><h2>ทุกชีวิตที่กลับมา</h2><p>ฟื้นป่าเพื่อค้นพบสัตว์ใหม่ รับทุนสำรวจและ 25 XP ต่อชนิด</p>
           <div className="wildlife-grid">{WILDLIFE.map((animal) => {
             const found = game.journey.discovered.includes(animal.id)
-            return <article key={animal.id} className={found ? 'discovered' : ''}><span className="animal-art">{found ? animal.icon : '◇'}</span><small>{found ? 'ค้นพบแล้ว ✓' : 'ยังไม่ค้นพบ'}</small><h3>{animal.name}</h3><p>{animal.hint}</p><b>{found ? 'บันทึกในสมุดแล้ว' : `ทุนสำรวจ +${animal.reward} ●`}</b></article>
+            return <article key={animal.id} className={`${found ? 'discovered' : ''}${wildlifeUnlock?.id === animal.id ? ' just-unlocked' : ''}`} data-wildlife-unlock={wildlifeUnlock?.id === animal.id ? animal.id : undefined}><span className="animal-art">{found ? animal.icon : '◇'}</span><small>{found ? 'ค้นพบแล้ว ✓' : 'ยังไม่ค้นพบ'}</small><h3>{animal.name}</h3><p>{animal.hint}</p><b>{found ? 'บันทึกในสมุดแล้ว' : `ทุนสำรวจ +${animal.reward} ●`}</b></article>
           })}</div><p className="journal-footnote">สมุดเก็บการค้นพบถาวรในโครงการนี้ สัตว์ในฉากจะเปลี่ยนตามสภาพป่าปัจจุบัน</p>
         </div></ModalBackdrop>
       )}
