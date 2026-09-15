@@ -389,18 +389,49 @@ try {
   for(const animal of animals1.actors.filter(a=>/coast-crab|coast-fish/.test(a.name))) assert.notDeepEqual(animals2.actors.find(a=>a.name===animal.name).position,animal.position)
   report.restoredRender={calls:animals2.calls,triangles:animals2.triangles,actorCount:animals2.actors.length}
   check('restored habitat adds wildlife whose positions animate')
-  // Discovered journal entries should spawn plot-wildlife actors near planted plots.
+  // Empty journal must stay quiet; 4/4 discovered must mount crab/fish/bird (fish above mudline).
   await page.evaluate((key) => {
     const g = JSON.parse(localStorage.getItem(key))
-    g.journey = { ...(g.journey || {}), discovered: ['crab', 'fish', 'bird'], sandbox: true }
+    g.journey = { ...(g.journey || {}), discovered: [], sandbox: true }
+    localStorage.setItem(key, JSON.stringify(g))
+  }, saveKey)
+  await page.reload()
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.actors?.length >= 4)
+  const emptyPlot = await page.evaluate(() => {
+    const d = window.__coastDiagnostics()
+    return {
+      plotWildlife: d.plotWildlife,
+      crabs: d.actors.filter((a) => a.name.startsWith('coast-crab-')).length,
+      fish: d.actors.filter((a) => a.name.startsWith('coast-fish-')).length,
+      birds: d.actors.filter((a) => a.name.startsWith('coast-bird-')).length,
+    }
+  })
+  await page.evaluate((key) => {
+    const g = JSON.parse(localStorage.getItem(key))
+    g.journey = { ...(g.journey || {}), discovered: ['crab', 'fish', 'bird', 'firefly'], sandbox: true }
     localStorage.setItem(key, JSON.stringify(g))
   }, saveKey)
   await page.reload()
   await page.waitForFunction(() => window.__coastDiagnostics?.()?.actors?.length >= 4)
   await page.waitForFunction(() => window.__coastDiagnostics?.()?.plotWildlife === true, null, { timeout: 20000 })
-  const plotFauna = await page.evaluate(() => window.__coastDiagnostics().plotWildlife)
-  assert.equal(plotFauna, true, 'plot-wildlife group must mount when journey.discovered has fauna')
-  check('discovered journal fauna mounts plot-wildlife in the planted plots')
+  const fullPlot = await page.evaluate(() => {
+    const d = window.__coastDiagnostics()
+    const fish = d.actors.filter((a) => a.name.startsWith('coast-fish-'))
+    return {
+      plotWildlife: d.plotWildlife,
+      crabs: d.actors.filter((a) => a.name.startsWith('coast-crab-')).length,
+      fish: fish.length,
+      birds: d.actors.filter((a) => a.name.startsWith('coast-bird-')).length,
+      fishMinY: fish.length ? Math.min(...fish.map((a) => a.position[1])) : null,
+    }
+  })
+  assert.equal(fullPlot.plotWildlife, true, 'plot-wildlife group must mount when journal has fauna')
+  assert.ok(fullPlot.crabs > emptyPlot.crabs, `4/4 must show more crabs than empty journal; empty=${JSON.stringify(emptyPlot)} full=${JSON.stringify(fullPlot)}`)
+  assert.ok(fullPlot.fish > 0, `4/4 must spawn coast-fish actors; got ${JSON.stringify(fullPlot)}`)
+  assert.ok(fullPlot.birds > 0, `4/4 must spawn coast-bird actors; got ${JSON.stringify(fullPlot)}`)
+  assert.ok(fullPlot.fishMinY == null || fullPlot.fishMinY > 0.05,
+    `plot fish must sit above mudline (not buried); fishMinY=${fullPlot.fishMinY}`)
+  check('discovered journal empty is quiet; 4/4 mounts crab/fish/bird above mudline')
   // Developed habitat must publish numeric wildlife counts via diagnostics.
   const wildlife = animals2.wildlife ?? (await page.evaluate(() => window.__coastDiagnostics()?.wildlife ?? null))
   assert.ok(wildlife, 'diagnostics.wildlife must be published for developed habitat')
