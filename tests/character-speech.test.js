@@ -13,6 +13,8 @@ import {
   nonSpeechForPatrol,
   nonSpeechForForecastPrep,
   ingSpeechForSurvey,
+  ingSpeechForWildlifeDrip,
+  nonSpeechForWildlifeDrip,
   createSpeech,
 } from '../src/character-speech.js'
 
@@ -92,3 +94,7 @@ test('tomorrow-wait Mali tip is a fixed Thai string', () => {
   )
 })
 
+test('wildlife drip speech lines name the animal in Thai', () => {
+  assert.equal(ingSpeechForWildlifeDrip('ปูก้ามดาบ'), 'เจอปูก้ามดาบแล้ว! บันทึกลงสมุดสัตว์นะ')
+  assert.equal(nonSpeechForWildlifeDrip('ฝูงปลาวัยอ่อน'), 'ดูสิ — ฝูงปลาวัยอ่อน! อ่าวมีชีวิตขึ้นอีกแล้ว')
+})

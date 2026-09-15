@@ -7,8 +7,9 @@ import { advanceDay } from './game-engine.js'
 import { forecastFor, habitatFor, crewLeft, crewAction, crewRule, acceptContract, contractProgress, claimContract, settleRestoration, prepareSoil, stormDamage } from './restoration.js'
 import GameIcon from './GameIcon.jsx'
 import { RestorationPanel, RestorationModal } from './RestorationPanel.jsx'
-import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey } from './character-speech.js'
+import { SPEECH_MS, createSpeech, maliSpeechForPlant, maliSpeechForCrewCare, maliSpeechForPlotCare, maliSpeechForFirstContract, maliSpeechForFirstPerfect, maliSpeechForFirstCrab, maliSpeechForTomorrowWait, nonSpeechForClean, nonSpeechForPatrol, nonSpeechForForecastPrep, ingSpeechForSurvey, ingSpeechForWildlifeDrip, nonSpeechForWildlifeDrip } from './character-speech.js'
 import { cliffhangerFor } from './dawn-cliffhanger.js'
+import { DRIP_ACTIONS, tryWildlifeDrip } from './wildlife-drip.js'
 
 const SPEAKER_LABELS = { mali: 'มะลิ', non: 'นนท์', ing: 'อิง' }
 
@@ -56,6 +57,7 @@ function App() {
   const [dayReport, setDayReport] = useState(null)
   const [worldAction, setWorldAction] = useState(null)
   const [characterSpeech, setCharacterSpeech] = useState(null)
+  const [highlightWildlife, setHighlightWildlife] = useState(null)
   const audioRef = useRef(null)
   const rank = rankFor(game.journey.xp)
   const mission = missionFor(game)
@@ -111,6 +113,12 @@ function App() {
     const timer = setTimeout(() => setCharacterSpeech(null), SPEECH_MS)
     return () => clearTimeout(timer)
   }, [characterSpeech])
+
+  useEffect(() => {
+    if (!highlightWildlife) return undefined
+    const timer = setTimeout(() => setHighlightWildlife(null), 4500)
+    return () => clearTimeout(timer)
+  }, [highlightWildlife])
 
   const speakCharacter = (speaker, text, actionId) => {
     setCharacterSpeech(createSpeech(speaker, text, actionId))
@@ -541,25 +549,43 @@ function App() {
   const handleCrew = (key) => {
     const rule = crewRule(game, key)
     if (!rule.ok) return
-    setGame((current) => { const next = crewAction(current, key); return next === current ? current : appendLog(next, `ภาคสนาม: ${rule.name} · ${rule.hint}`, 'care') })
-    setWorldAction({ type: key, plotId: key === 'care' ? game.plots.filter((p) => p.species && !p.dead).sort((a,b) => a.health - b.health)[0]?.id : null, id: `${game.day}-${key}` })
-    if (key === 'patrol') {
-      const hazardTitle = EVENTS.find((e) => e.id === forecastFor(game.day).eventId)?.title
-      speakCharacter('non', nonSpeechForPatrol(hazardTitle), 'patrol')
-      setNotice(hazardTitle
-        ? `ลาดตระเวนสำเร็จ · เตรียมรับ «${hazardTitle}» แล้ว · ${rule.hint}`
-        : `${rule.name}สำเร็จ · ${rule.hint}`)
-    } else if (key === 'survey') {
-      speakCharacter('ing', ingSpeechForSurvey(), 'survey')
-      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
-    } else if (key === 'clean') {
-      speakCharacter('non', nonSpeechForClean(), 'cleanup')
-      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
-    } else if (key === 'care') {
-      speakMali(maliSpeechForCrewCare(), 'crew-care')
-      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+    const afterCrew = crewAction(game, key)
+    if (afterCrew === game) return
+    let unlocked = null
+    let next = afterCrew
+    if (DRIP_ACTIONS.includes(key)) {
+      const drip = tryWildlifeDrip(afterCrew, key)
+      next = drip.game
+      unlocked = drip.unlocked
+    }
+    setGame(appendLog(next, `ภาคสนาม: ${rule.name} · ${rule.hint}`, 'care'))
+    const carePlotId = key === 'care' ? game.plots.filter((p) => p.species && !p.dead).sort((a,b) => a.health - b.health)[0]?.id : null
+    if (unlocked) {
+      setWorldAction({ type: 'wildlife-drip', animalId: unlocked.id, plotId: carePlotId, id: `${game.day}-wildlife-drip-${unlocked.id}` })
+      setHighlightWildlife(unlocked.id)
+      if (key === 'survey') speakCharacter('ing', ingSpeechForWildlifeDrip(unlocked.name), 'wildlife-drip')
+      else speakCharacter('non', nonSpeechForWildlifeDrip(unlocked.name), 'wildlife-drip')
+      setNotice(`ค้นพบ${unlocked.name}! ทุนสำรวจ +${unlocked.reward} ● · +25 XP`)
     } else {
-      setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+      setWorldAction({ type: key, plotId: carePlotId, id: `${game.day}-${key}` })
+      if (key === 'patrol') {
+        const hazardTitle = EVENTS.find((e) => e.id === forecastFor(game.day).eventId)?.title
+        speakCharacter('non', nonSpeechForPatrol(hazardTitle), 'patrol')
+        setNotice(hazardTitle
+          ? `ลาดตระเวนสำเร็จ · เตรียมรับ «${hazardTitle}» แล้ว · ${rule.hint}`
+          : `${rule.name}สำเร็จ · ${rule.hint}`)
+      } else if (key === 'survey') {
+        speakCharacter('ing', ingSpeechForSurvey(), 'survey')
+        setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+      } else if (key === 'clean') {
+        speakCharacter('non', nonSpeechForClean(), 'cleanup')
+        setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+      } else if (key === 'care') {
+        speakMali(maliSpeechForCrewCare(), 'crew-care')
+        setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+      } else {
+        setNotice(`${rule.name}สำเร็จ · ${rule.hint}`)
+      }
     }
     playChime()
   }
@@ -794,7 +820,8 @@ function App() {
           <small>THE BAY IS COMING BACK</small><h2>ทุกชีวิตที่กลับมา</h2><p>ฟื้นป่าเพื่อค้นพบสัตว์ใหม่ รับทุนสำรวจและ 25 XP ต่อชนิด</p>
           <div className="wildlife-grid">{WILDLIFE.map((animal) => {
             const found = game.journey.discovered.includes(animal.id)
-            return <article key={animal.id} className={found ? 'discovered' : ''}><span className="animal-art">{found ? animal.icon : '◇'}</span><small>{found ? 'ค้นพบแล้ว ✓' : 'ยังไม่ค้นพบ'}</small><h3>{animal.name}</h3><p>{animal.hint}</p><b>{found ? 'บันทึกในสมุดแล้ว' : `ทุนสำรวจ +${animal.reward} ●`}</b></article>
+            const dripNew = highlightWildlife === animal.id
+            return <article key={animal.id} className={`${found ? 'discovered' : ''}${dripNew ? ' wildlife-drip-new' : ''}`.trim()} data-wildlife-drip={dripNew ? animal.id : undefined}><span className="animal-art">{found ? animal.icon : '◇'}</span><small>{found ? 'ค้นพบแล้ว ✓' : 'ยังไม่ค้นพบ'}</small><h3>{animal.name}</h3><p>{animal.hint}</p><b>{found ? 'บันทึกในสมุดแล้ว' : `ทุนสำรวจ +${animal.reward} ●`}</b></article>
           })}</div><p className="journal-footnote">สมุดเก็บการค้นพบถาวรในโครงการนี้ สัตว์ในฉากจะเปลี่ยนตามสภาพป่าปัจจุบัน</p>
         </div></ModalBackdrop>
       )}
