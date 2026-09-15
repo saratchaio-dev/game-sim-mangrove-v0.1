@@ -643,7 +643,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined} data-event-speech={worldAction?.type === 'event-speech' && ['storm', 'kingtide', 'mrv'].includes(worldAction.eventId) ? worldAction.eventId : undefined}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''}${hudCompact ? ' hud-compact' : ''}`} data-hud-compact={hudCompact ? 'true' : 'false'} data-photo-mode={photoMode ? 'true' : 'false'} data-streak-theater={worldAction?.type === 'streak-theater' ? String(Math.min(8, Math.max(2, Number(worldAction.streak) || 2))) : undefined} data-event-speech={worldAction?.type === 'event-speech' && ['storm', 'kingtide', 'mrv'].includes(worldAction.eventId) ? worldAction.eventId : undefined} data-late-game-celebration={worldAction?.type === 'late-game-celebration' && ['living-coast', 'rank-up', 'prestige'].includes(worldAction.kind) ? worldAction.kind : undefined}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}

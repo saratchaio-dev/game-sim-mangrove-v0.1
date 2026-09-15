@@ -530,3 +530,27 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
   16% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.game3d-shell[data-late-game-celebration="living-coast"] {
+  --late-vignette: rgba(18, 72, 42, 0.38);
+}
+.game3d-shell[data-late-game-celebration="rank-up"] {
+  --late-vignette: rgba(72, 48, 8, 0.4);
+}
+.game3d-shell[data-late-game-celebration="prestige"] {
+  --late-vignette: rgba(48, 24, 72, 0.4);
+}
+.game3d-shell[data-late-game-celebration]::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  background: radial-gradient(ellipse at 50% 40%, transparent 38%, var(--late-vignette, rgba(18, 72, 42, 0.36)) 100%);
+  animation: late-game-celebration-fade 2.2s ease-out forwards;
+}
+@keyframes late-game-celebration-fade {
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  100% { opacity: 0; }
+}

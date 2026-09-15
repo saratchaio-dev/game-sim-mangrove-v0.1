@@ -84,6 +84,7 @@ export function installWorldDiagnostics({ gl, scene, camera, plotPositions, fram
       wildlifeUnlockFx: Boolean(scene.getObjectByName('wildlife-unlock-fx')),
       streakTheaterFx: Boolean(scene.getObjectByName('streak-theater-fx')),
       eventSpeechFx: Boolean(scene.getObjectByName('event-speech-fx')),
+      lateGameCelebrationFx: Boolean(scene.getObjectByName('late-game-celebration-fx')),
       hudCompact: beat?.hudCompact ?? null,
       photoMode: beat?.photoMode ?? false,
       plots: plotPositions.map(([x, z], index) => {
