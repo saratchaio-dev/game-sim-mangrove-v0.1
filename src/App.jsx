@@ -87,6 +87,11 @@ function App() {
   useEffect(() => () => { audioRef.current?.close().catch(() => {}); audioRef.current = null }, [])
   useEffect(() => {
     const onKey = (event) => {
+      if (event.key === 'p' || event.key === 'P') {
+        if (event.target?.closest?.('input, textarea, [contenteditable="true"]')) return
+        setPhotoMode((value) => !value)
+        return
+      }
       if (event.key !== 'Escape') return
       setPhotoMode(false); setShowPlots(false); setShowJournal(false); setShowRestoration(false); setShowDayPlan(false)
       setShowEconomy(false); setShowBrief(false); setShowGoals(false); setShowUpgrades(false); setShowLog(false)
@@ -124,6 +129,20 @@ function App() {
       else delete window.__coastBeat
     }
   }, [worldAction])
+
+  useEffect(() => {
+    if (!(import.meta.env.DEV || import.meta.env.VITE_WORLD_QA === '1')) return
+    if (!new URLSearchParams(location.search).has('qa')) return
+    const prev = window.__coastBeat || {}
+    window.__coastBeat = { ...prev, photoMode }
+    return () => {
+      if (!window.__coastBeat) return
+      if (window.__coastBeat.photoMode !== photoMode) return
+      const { photoMode: _drop, ...rest } = window.__coastBeat
+      if (Object.keys(rest).length) window.__coastBeat = rest
+      else delete window.__coastBeat
+    }
+
 
   const derived = useMemo(() => {
     const planted = game.plots.filter((plot) => plot.species)
@@ -516,7 +535,7 @@ function App() {
   }
 
   return (
-    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''} ${showBrief ? 'brief-open' : ''} ${showEconomy ? 'economy-open' : ''}`}>
+    <div className={`game3d-shell ${photoMode ? 'photo-mode' : ''} ${showBrief ? 'brief-open' : ''} ${showEconomy ? 'economy-open' : ''}`} data-photo-mode={photoMode ? 'true' : 'false'}>
       <MangroveWorld3D
         cameraReset={cameraReset}
         habitat={habitat}
@@ -535,10 +554,19 @@ function App() {
         upgrades={game.upgrades}
       />
 
-      {photoMode && <button className="photo-exit" onClick={() => setPhotoMode(false)}>← กลับเข้าเกม · Esc</button>}
+      {photoMode && (
+        <div className="photo-mode-chrome" aria-live="polite">
+          <div className="photo-mode-title">
+            <strong>MANGROVE BAY</strong>
+            <small>วันที่ {game.day} · {forecast.tide}{game.event ? ` · ${game.event.title}` : ''}</small>
+          </div>
+          <button className="photo-exit" onClick={() => setPhotoMode(false)}>← กลับเข้าเกม · Esc</button>
+          <span className="photo-mode-hint">กด P เพื่อสลับโหมดชมวิว</span>
+        </div>
+      )}
       <div className="game-ui">
         <header className="top-hud">
-          <div className="brand-plaque">
+          <div className="brand-plaque" data-title-brand="mangrove-bay">
             <span className="brand-emblem">M</span>
             <span>
               <strong>MANGROVE BAY</strong>

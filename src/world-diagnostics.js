@@ -67,6 +67,7 @@ export function installWorldDiagnostics({ gl, scene, camera, plotPositions, fram
       shoreCue: beat?.shoreCue ?? wildlifeShore ?? null,
       maliSpeech: beat?.maliSpeech ?? null,
       lighting: beat?.lighting ?? window.__coastMoodLighting ?? null,
+      photoMode: beat?.photoMode ?? null,
       plots: plotPositions.map(([x, z], index) => {
         projected.set(x, .65, z).project(camera)
         return { id: index + 1, x: (projected.x + 1) / 2 * gl.domElement.clientWidth,
