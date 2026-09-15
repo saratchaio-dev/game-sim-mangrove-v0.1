@@ -43,6 +43,11 @@ async function open(viewport) {
   assert.equal(lighting0.tideOffset, forecast0.tideOffset, 'lighting.tideOffset must match forecast')
   assert.equal(lighting0.preset, forecast0.expectedPreset, 'clear weather preset follows golden/day from forecast')
   check('mood lighting publishes lighting.preset/sky/fog/tideOffset on diagnostics')
+  const scenery = await page.evaluate(() => window.__coastDiagnostics().scenery)
+  assert.ok(scenery?.batchCount > 0, 'scenery batches should be present')
+  assert.ok(scenery.batches.some((b) => b.name === 'sky-clouds'), 'clouds should be instanced as sky-clouds')
+  check('scenery batching publishes scenery.batches including sky-clouds')
+
   await page.evaluate(() => document.fonts.ready)
   return page
 }
@@ -309,6 +314,15 @@ try {
   for(const animal of animals1.actors.filter(a=>/coast-crab|coast-fish/.test(a.name))) assert.notDeepEqual(animals2.actors.find(a=>a.name===animal.name).position,animal.position)
   report.restoredRender={calls:animals2.calls,triangles:animals2.triangles,actorCount:animals2.actors.length}
   check('restored habitat adds wildlife whose positions animate')
+  // Developed habitat must publish numeric wildlife counts via diagnostics.
+  const wildlife = animals2.wildlife ?? (await page.evaluate(() => window.__coastDiagnostics()?.wildlife ?? null))
+  assert.ok(wildlife, 'diagnostics.wildlife must be published for developed habitat')
+  assert.equal(typeof wildlife.crabs, 'number', 'wildlife.crabs must be a number')
+  assert.equal(typeof wildlife.birds, 'number', 'wildlife.birds must be a number')
+  assert.equal(typeof wildlife.fish, 'number', 'wildlife.fish must be a number')
+  assert.ok(wildlife.crabs + wildlife.fish + wildlife.birds > 0,
+    `developed habitat wildlife counts must be > 0; got ${JSON.stringify(wildlife)}`)
+  check('restored habitat diagnostics.wildlife has crabs/birds/fish counts > 0')
   // Recorded forecast changes the scene and the actual decision.
   // Golden day without weather event (day 4 → golden, tideOffset 0.03).
   await page.evaluate((key)=>{const g=JSON.parse(localStorage.getItem(key));g.day=4;g.event=null;localStorage.setItem(key,JSON.stringify(g))},saveKey)

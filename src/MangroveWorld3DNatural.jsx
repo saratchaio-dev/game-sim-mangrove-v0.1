@@ -9,6 +9,8 @@ import {
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { SceneryBatch, GrassPatch } from './SceneryBatch.jsx'
+import { wildlifePresence, undergrowthItems, protectionFlagItems } from './shore-wildlife.js'
+import { useMotionBudget } from './useMotionBudget.js'
 import { WorldResources, useWorldResources } from './WorldResources.jsx'
 import { WorldPerformance, useDeviceQuality } from './WorldPerformance.jsx'
 import LivingWater from './LivingWater.jsx'
@@ -942,8 +944,9 @@ function Crab({ position, seed = 0, plantCue = null }) {
   const claws = useRef()
   const lastCue = useRef(null)
   const cueUntil = useRef(0)
+  const motionDue = useMotionBudget(group, seed + 11)
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!group.current) return
     if (plantCue != null && plantCue !== lastCue.current) {
       lastCue.current = plantCue
@@ -951,6 +954,8 @@ function Crab({ position, seed = 0, plantCue = null }) {
     }
     const excited = state.clock.elapsedTime < cueUntil.current
     group.current.userData.shoreCue = excited
+    const step = motionDue(state.clock.elapsedTime, delta)
+    if (!step && !excited) return
     const spin = excited ? 0.55 : 0.2
     const claw = excited ? 0.55 : 0.22
     group.current.rotation.y = Math.sin(state.clock.elapsedTime * (excited ? 2.4 : 1) + seed) * spin
@@ -989,9 +994,12 @@ function Crab({ position, seed = 0, plantCue = null }) {
 function Fish({ position, color = '#ffd166', seed = 0 }) {
   const group = useRef()
   const tail = useRef()
+  const motionDue = useMotionBudget(group, seed + 21)
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!group.current) return
+    const step = motionDue(state.clock.elapsedTime, delta)
+    if (!step) return
     if (tail.current) tail.current.rotation.y = Math.sin(state.clock.elapsedTime * 7 + seed) * .35
     const t = state.clock.elapsedTime * .55 + seed
     group.current.position.x = position[0] + Math.sin(t) * 1.2
@@ -1020,14 +1028,17 @@ function Bird({ seed = 0, plantCue = null }) {
   const rightWing = useRef()
   const lastCue = useRef(null)
   const cueUntil = useRef(0)
+  const motionDue = useMotionBudget(group, seed + 31)
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (plantCue != null && plantCue !== lastCue.current) {
       lastCue.current = plantCue
       cueUntil.current = state.clock.elapsedTime + 1
     }
     const excited = state.clock.elapsedTime < cueUntil.current
     if (group.current) group.current.userData.shoreCue = excited
+    const step = motionDue(state.clock.elapsedTime, delta)
+    if (!step && !excited) return
     const t = state.clock.elapsedTime * 0.3 + seed
     if (group.current) {
       const radius = 5.5 + seed * 0.7
@@ -1060,17 +1071,17 @@ function Bird({ seed = 0, plantCue = null }) {
   )
 }
 
-function Wildlife({ plots, communityLevel, plantCue = null }) {
+function Wildlife({ plots, communityLevel, habitatStage = 0, plantCue = null }) {
   const living = plots.filter((plot) => plot.species && !plot.dead).length
   const mature = plots.filter((plot) => plot.species && !plot.dead && plot.age >= 6).length
-  const crabCount = Math.min(6, Math.max(0, Math.floor(living / 3)))
-  const fishCount = Math.min(7, Math.max(0, Math.floor(living / 2) - 1))
-  const birdCount = Math.min(3, Math.max(0, Math.floor(mature / 3) + (communityLevel >= 2 ? 1 : 0)))
+  const { crabs: crabCount, fish: fishCount, birds: birdCount } = wildlifePresence({
+    living, mature, stage: habitatStage, communityLevel,
+  })
 
   return (
     <group>
       {Array.from({ length: crabCount }, (_, index) => (
-        <Crab key={`crab-${index}`} position={[-9.8 + index * 3.2, 0.47, -8.2 + (index % 2) * 0.8]} seed={index} plantCue={plantCue} />
+        <Crab key={`crab-${index}`} position={[-9.8 + (index % 4) * 3.2, 0.47, -8.2 + Math.floor(index / 4) * 1.1 + (index % 2) * 0.8]} seed={index} plantCue={plantCue} />
       ))}
       {Array.from({ length: fishCount }, (_, index) => (
         <Fish
@@ -1104,28 +1115,27 @@ function CoastalBarriers({ plots, communityLevel }) {
 }
 
 const Clouds = memo(function Clouds() {
-  const resources = useWorldResources()
-  const geometry = resources.geometry('sphere', [.8, 14, 10])
-  const material = resources.material({ color: '#ffffff', roughness: .96, transparent: true, opacity: .92 })
-  const clouds = [
-    [-11, 8.5, -10, 1.25], [7, 9.5, -12, 1], [14, 7.6, 3, 0.78], [-3, 10, 14, 0.9],
-  ]
-
-  return (
-    <group>
-      {clouds.map(([x, y, z, scale], index) => (
-        <Float key={index} speed={0.42 + index * 0.1} rotationIntensity={0.07} floatIntensity={0.34}>
-          <group position={[x, y, z]} scale={scale}>
-            {[
-              [-0.7, 0, 0, 0.66], [0, 0.18, 0, 0.9], [0.72, 0, 0.02, 0.62], [0.16, -0.12, 0.08, 0.72],
-            ].map(([cx, cy, cz, sphereScale], cloudIndex) => (
-              <mesh key={cloudIndex} position={[cx, cy, cz]} scale={sphereScale} geometry={geometry} material={material} dispose={null} />
-            ))}
-          </group>
-        </Float>
-      ))}
-    </group>
-  )
+  const items = useMemo(() => {
+    const anchors = [
+      [-11, 8.5, -10, 1.25], [7, 9.5, -12, 1], [14, 7.6, 3, 0.78], [-3, 10, 14, 0.9],
+    ]
+    const puffs = [
+      [-0.7, 0, 0, 0.66], [0, 0.18, 0, 0.9], [0.72, 0, 0.02, 0.62], [0.16, -0.12, 0.08, 0.72],
+    ]
+    const result = []
+    anchors.forEach(([x, y, z, scale], index) => {
+      puffs.forEach(([cx, cy, cz, sphereScale], puff) => {
+        result.push({
+          position: [x + cx * scale, y + cy * scale, z + cz * scale],
+          scale: scale * sphereScale * 0.8,
+          color: puff % 2 ? '#ffffff' : '#f4fbff',
+          rotation: [0, index * 0.2, 0],
+        })
+      })
+    })
+    return result
+  }, [])
+  return <SceneryBatch name="sky-clouds" items={items} shape="sphere" args={[0.8, 10, 8]} roughness={0.96} opacity={0.9} receiveShadow={false} castShadow={false} />
 })
 
 
@@ -1310,7 +1320,7 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
       ))}
 
       <ActionSceneBeat action={action} />
-      <Wildlife plots={plots} communityLevel={upgrades.community} plantCue={action?.type === 'plant' ? action.id : null} />
+      <Wildlife plots={plots} communityLevel={upgrades.community} habitatStage={habitat?.stage || 0} plantCue={action?.type === 'plant' ? action.id : null} />
       {fireflies && plots.filter((p) => p.species === 'sonneratia' && !p.dead && p.age >= 6).map((p) => <Sparkles key={p.id} position={plotPosition(p.id).map((v, i) => i === 1 ? v + 1.8 : v)} count={18} scale={[2.8, 2.2, 2.8]} size={3.5} speed={0.6} color="#f6ec87" opacity={0.85} />)}
       <CoastalBarriers plots={plots} communityLevel={upgrades.community} />
       <Sparkles
@@ -1346,6 +1356,8 @@ function RestorationScenery({ clean, stage, protection }) {
     position: [-10.8 + pseudo(i * 5.2 + 2) * 20, .44, -8 + pseudo(i * 7.1 + 12) * 13],
     scale: .35 + pseudo(i * 9.3) * .5, color: i % 2 ? '#7aaf67' : '#428c65',
   })), [stage])
+  const undergrowth = useMemo(() => undergrowthItems(stage, pseudo), [stage])
+  const flags = useMemo(() => protectionFlagItems(protection), [protection])
   useFrame((_, dt) => {
     if (!litter.current || Math.abs(litter.current.scale.x - target) < .0001) return
     const size = THREE.MathUtils.damp(litter.current.scale.x, target, 5, Math.min(dt, .1))
@@ -1358,7 +1370,10 @@ function RestorationScenery({ clean, stage, protection }) {
       <SceneryBatch name="debris-caps" items={debris.caps} args={[.07, .08, .07]} roughness={1} />
     </group>
     {grass.length > 0 && <GrassPatch items={grass} name="restoration-grass" />}
-    {protection && [-7,-3,1,5].map((x) => <group key={x} position={[x,.45,-9.5]}><mesh position={[0,.3,0]}><cylinderGeometry args={[.035,.05,1.1,6]} /><meshStandardMaterial color="#887252" /></mesh><mesh position={[.15,.68,0]}><planeGeometry args={[.3,.23]} /><meshStandardMaterial color="#eec866" side={THREE.DoubleSide} /></mesh></group>)}
+    {undergrowth.bushes.length > 0 && <SceneryBatch name="habitat-bushes" items={undergrowth.bushes} shape="sphere" args={[.22, 8, 6]} roughness={1} flatShading />}
+    {undergrowth.ferns.length > 0 && <SceneryBatch name="habitat-ferns" items={undergrowth.ferns} shape="cone" args={[.12, .28, 5]} roughness={1} flatShading />}
+    {flags.posts.length > 0 && <SceneryBatch name="protection-posts" items={flags.posts} shape="cylinder" args={[.035, .05, 1.1, 6]} />}
+    {flags.flags.length > 0 && <SceneryBatch name="protection-flags" items={flags.flags} args={[.3, .23, .02]} roughness={.85} />}
     {stage >= 2 && <group position={[8.3,.5,3.5]}><mesh position={[0,.55,0]}><cylinderGeometry args={[.045,.06,1.1,6]} /><meshStandardMaterial color="#9e8357" /></mesh><mesh position={[0,1.1,0]}><boxGeometry args={[.8,.45,.09]} /><meshStandardMaterial color="#276c58" /></mesh><mesh position={[0,1.12,.06]}><circleGeometry args={[.11,8]} /><meshBasicMaterial color="#edd599" /></mesh></group>}
   </group>
 }

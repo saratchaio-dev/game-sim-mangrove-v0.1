@@ -14,7 +14,14 @@ export function installWorldDiagnostics({ gl, scene, camera, plotPositions, fram
     const beatOwnsParticle = Boolean(beat && Object.prototype.hasOwnProperty.call(beat, 'particleRoot'))
     let particleRoot = beatOwnsParticle ? beat.particleRoot : false
     let wildlifeShore = null
+    const sceneryBatches = []
     scene.traverse((object) => {
+      if (object.isInstancedMesh && object.userData?.sceneryBatch) {
+        sceneryBatches.push({
+          name: object.name || object.userData.batchName || 'batch',
+          count: object.count,
+        })
+      }
       if (object.isMesh) {
         meshNodes += 1
         if (object.isInstancedMesh) instanceCount += object.count
@@ -67,6 +74,12 @@ export function installWorldDiagnostics({ gl, scene, camera, plotPositions, fram
       shoreCue: beat?.shoreCue ?? wildlifeShore ?? null,
       maliSpeech: beat?.maliSpeech ?? null,
       lighting: beat?.lighting ?? window.__coastMoodLighting ?? null,
+      scenery: { batches: sceneryBatches, batchCount: sceneryBatches.length },
+      wildlife: {
+        crabs: actors.filter((a) => a.name.startsWith('coast-crab-')).length,
+        birds: actors.filter((a) => a.name.startsWith('coast-bird-')).length,
+        fish: actors.filter((a) => a.name.startsWith('coast-fish-')).length,
+      },
       plots: plotPositions.map(([x, z], index) => {
         projected.set(x, .65, z).project(camera)
         return { id: index + 1, x: (projected.x + 1) / 2 * gl.domElement.clientWidth,
