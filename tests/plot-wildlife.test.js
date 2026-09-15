@@ -29,3 +29,15 @@ test('cliffhanger day-plan exposes forecast-tomorrow and contract-days-left hook
   assert.match(app, /data-contract-days-left/)
   assert.match(app, /discovered=\{game\.journey\.discovered\}/)
 })
+
+test('stylized Fish/Bird meshes keep coast-* names and richer silhouette parts', () => {
+  assert.match(source, /name=\{`coast-fish-\$\{seed\}`\}/)
+  assert.match(source, /name=\{`coast-bird-\$\{seed\}`\}/)
+  assert.match(source, /Stylized mangrove egret/)
+  assert.match(source, /const fin =/)
+  assert.match(source, /const beak =/)
+  assert.match(source, /const wing =/)
+  // Motion/API props must remain for plot wildlife + shore cue.
+  assert.match(source, /function Fish\(\{ position, color = '#ffd166', seed = 0, scale = 0\.65, roam = 1\.2, alwaysAnimate = false \}\)/)
+  assert.match(source, /function Bird\(\{ seed = 0, plantCue = null, center = null, scale = 0\.7, roam = 5\.5, alwaysAnimate = false, height = 7\.2 \}\)/)
+})
