@@ -1147,11 +1147,11 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
         return (
           <Fish
             key={`plot-fish-${plot.id}`}
-            position={[x + 0.35 + (index % 2) * 0.2, y + 0.18, z - 0.95]}
+            position={[x + 0.35 + (index % 2) * 0.2, y + 0.28, z - 0.55]}
             color={['#ffd166', '#3ad0c8', '#ff8d70'][index % 3]}
             seed={plot.id * 0.7}
-            scale={plotScale * 1.15}
-            roam={plotRoam}
+            scale={plotScale * 1.45}
+            roam={plotRoam * 0.7}
             alwaysAnimate
           />
         )
@@ -1164,9 +1164,9 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
             seed={plot.id * 0.9 + index}
             plantCue={plantCue}
             center={[x, y, z]}
-            scale={plotScale * 1.2}
-            roam={plotRoam * 0.85}
-            height={y + 0.95}
+            scale={plotScale * 1.55}
+            roam={plotRoam * 0.7}
+            height={y + 1.35}
             alwaysAnimate
           />
         )
@@ -1176,11 +1176,11 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
         return (
           <Sparkles
             key={`plot-firefly-${plot.id}`}
-            position={[x + 0.2, y + 0.85, z + 0.15]}
-            count={22}
-            scale={[2.2, 1.6, 2.2]}
-            size={3.6}
-            speed={0.18}
+            position={[x + 0.2, y + 1.15, z + 0.15]}
+            count={36}
+            scale={[3.2, 2.4, 3.2]}
+            size={6.5}
+            speed={0.22}
             color="#ffe56a"
             opacity={1}
           />
@@ -1383,9 +1383,6 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
     : action?.type === 'patrol' ? [1, .48, -9.4] : null, [action])
   const forecast = useMemo(() => forecastFor(day), [day])
   const golden = forecast.golden
-  const discovery = plotWildlifeForDiscovery(discovered)
-  const showFireflies = Boolean(fireflies && discovery.showFireflies)
-
   return (
     <>
       <WorldPerformance plotPositions={PLOT_POSITIONS} quality={quality} onReady={onReady} />
@@ -1418,7 +1415,6 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
       <ActionSceneBeat action={action} />
       <Wildlife plots={plots} communityLevel={upgrades.community} habitatStage={habitat?.stage || 0} plantCue={action?.type === 'plant' ? action.id : null} />
       <PlotWildlife plots={plots} discovered={discovered} plantCue={action?.type === 'plant' ? action.id : null} />
-      {fireflies && plots.filter((p) => p.species === 'sonneratia' && !p.dead && p.age >= 6).map((p) => <Sparkles key={`ff-${p.id}`} position={plotPosition(p.id).map((v, i) => i === 1 ? v + 1.8 : v)} count={18} scale={[2.8, 2.2, 2.8]} size={3.5} speed={0.6} color="#f6ec87" opacity={0.85} />)}
       <CoastalBarriers plots={plots} communityLevel={upgrades.community} />
       <Sparkles
         count={28}
