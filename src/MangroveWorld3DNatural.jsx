@@ -15,6 +15,7 @@ import LivingWater from './LivingWater.jsx'
 import CoastCharacters from './CoastCharacters.jsx'
 import { forecastFor } from './restoration.js'
 import { suitability } from './game-data.js'
+import { resolveLightingMood } from './mood-lighting.js'
 
 const SPECIES_LOOK = {
   rhizophora: {
@@ -1185,28 +1186,76 @@ function CameraRig({ selectedPlot, cameraReset }) {
   )
 }
 
-function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, cameraReset, habitat, clean, protection, action, speech=null, quality, onReady }) {
-  const storm = weather === 'storm' || weather === 'kingtide'
-  const crewTarget = useMemo(() => action?.plotId
-    ? plotPosition(action.plotId).map((v, i) => i === 0 ? v + .8 : v)
-    : action?.type === 'clean' ? [0, .48, -8.3]
-    : action?.type === 'patrol' ? [1, .48, -9.4] : null, [action])
-  const forecast = useMemo(() => forecastFor(day), [day])
-  const golden = forecast.golden
-  const skyColor = storm ? '#84a9b5' : golden ? '#b6c8ba' : '#94d2d4'
+
+function MoodLighting({ weather, golden, tideOffset, quality }) {
+  const { scene } = useThree()
+  const ambient = useRef()
+  const hemi = useRef()
+  const dir = useRef()
+  const skyTarget = useRef(new THREE.Color())
+  const fogTarget = useRef(new THREE.Color())
+  const hemiSkyTarget = useRef(new THREE.Color())
+  const hemiGroundTarget = useRef(new THREE.Color())
+  const dirColorTarget = useRef(new THREE.Color())
+  const mood = useMemo(
+    () => resolveLightingMood({ weather, golden, tideOffset }),
+    [weather, golden, tideOffset],
+  )
+
+  useEffect(() => {
+    if (!scene.background || !scene.background.isColor) scene.background = new THREE.Color(mood.sky)
+    if (!scene.fog) scene.fog = new THREE.Fog(mood.fog, 38, 72)
+    else if (!scene.fog.color) scene.fog.color = new THREE.Color(mood.fog)
+  }, [scene, mood.sky, mood.fog])
+
+  useEffect(() => {
+    skyTarget.current.set(mood.sky)
+    fogTarget.current.set(mood.fog)
+    hemiSkyTarget.current.set(mood.hemiSky)
+    hemiGroundTarget.current.set(mood.hemiGround)
+    dirColorTarget.current.set(mood.dirColor)
+    window.__coastMoodLighting = {
+      preset: mood.preset,
+      sky: mood.sky,
+      fog: mood.fog,
+      tideOffset: mood.tideOffset,
+    }
+    return () => {
+      if (window.__coastMoodLighting?.preset === mood.preset) delete window.__coastMoodLighting
+    }
+  }, [mood])
+
+  useFrame((_, delta) => {
+    const ease = 1 - Math.exp(-2.4 * Math.min(delta, 0.1))
+    if (scene.background?.isColor) scene.background.lerp(skyTarget.current, ease)
+    if (scene.fog?.color) scene.fog.color.lerp(fogTarget.current, ease)
+    if (ambient.current) {
+      ambient.current.intensity += (mood.ambient - ambient.current.intensity) * ease
+    }
+    if (hemi.current) {
+      hemi.current.color.lerp(hemiSkyTarget.current, ease)
+      hemi.current.groundColor.lerp(hemiGroundTarget.current, ease)
+      hemi.current.intensity += (mood.hemi - hemi.current.intensity) * ease
+    }
+    if (dir.current) {
+      dir.current.color.lerp(dirColorTarget.current, ease)
+      dir.current.intensity += (mood.dir - dir.current.intensity) * ease
+      dir.current.position.x += (mood.sun[0] - dir.current.position.x) * ease
+      dir.current.position.y += (mood.sun[1] - dir.current.position.y) * ease
+      dir.current.position.z += (mood.sun[2] - dir.current.position.z) * ease
+    }
+  })
 
   return (
-    <>
-      <WorldPerformance plotPositions={PLOT_POSITIONS} quality={quality} onReady={onReady} />
-      <color attach="background" args={[skyColor]} />
-      <fog attach="fog" args={[skyColor, 38, 72]} />
-      <ambientLight intensity={0.62} />
-      <hemisphereLight args={[golden ? '#ffe7bb' : '#e3fbfa', '#5f684c', 1.25]} />
+    <group name="mood-lighting">
+      <ambientLight ref={ambient} intensity={mood.ambient} />
+      <hemisphereLight ref={hemi} args={[mood.hemiSky, mood.hemiGround, mood.hemi]} />
       <directionalLight
+        ref={dir}
         castShadow
-        position={[14, 22, 9]}
-        color={golden ? '#ffde9e' : '#fff6df'}
-        intensity={storm ? 1.15 : golden ? 2.4 : 2.2}
+        position={mood.sun}
+        color={mood.dirColor}
+        intensity={mood.dir}
         shadow-mapSize-width={quality.shadowSize}
         shadow-mapSize-height={quality.shadowSize}
         shadow-camera-left={-20}
@@ -1218,6 +1267,23 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
         shadow-camera-near={0.5}
         shadow-camera-far={70}
       />
+    </group>
+  )
+}
+
+function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades, day, weather, fireflies, cameraReset, habitat, clean, protection, action, speech=null, quality, onReady }) {
+  const storm = weather === 'storm' || weather === 'kingtide'
+  const crewTarget = useMemo(() => action?.plotId
+    ? plotPosition(action.plotId).map((v, i) => i === 0 ? v + .8 : v)
+    : action?.type === 'clean' ? [0, .48, -8.3]
+    : action?.type === 'patrol' ? [1, .48, -9.4] : null, [action])
+  const forecast = useMemo(() => forecastFor(day), [day])
+  const golden = forecast.golden
+
+  return (
+    <>
+      <WorldPerformance plotPositions={PLOT_POSITIONS} quality={quality} onReady={onReady} />
+      <MoodLighting weather={weather} golden={golden} tideOffset={forecast.tideOffset} quality={quality} />
 
       <LivingWater tide={forecast.tideOffset} storm={storm} score={habitat?.score || 0} golden={golden} />
       <RestorationScenery clean={clean} stage={habitat?.stage || 0} protection={protection} />

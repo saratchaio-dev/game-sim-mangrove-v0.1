@@ -27,6 +27,22 @@ async function open(viewport) {
   await page.addInitScript(() => localStorage.setItem('mangrove-bay-3d-help-seen','1'))
   await page.goto(`${process.env.QA_URL || 'http://127.0.0.1:5173'}/?qa=1`)
   await page.waitForFunction(() => window.__coastDiagnostics?.().actors.length >= 4)
+  const lighting0 = await assertLighting(page)
+  assert.ok(['day', 'golden', 'storm'].includes(lighting0.preset))
+  assert.equal(typeof lighting0.tideOffset, 'number')
+  const forecast0 = await page.evaluate(async () => {
+    const day = JSON.parse(localStorage.getItem('mangrove-bay-3d-save-v2')).day
+    // Inline the same rules as forecastFor for assert without bundling.
+    return {
+      day,
+      golden: day % 6 >= 3,
+      tideOffset: [-0.1, 0, 0.14, 0.03][(day - 1) % 4],
+      expectedPreset: (day % 6 >= 3) ? 'golden' : 'day',
+    }
+  })
+  assert.equal(lighting0.tideOffset, forecast0.tideOffset, 'lighting.tideOffset must match forecast')
+  assert.equal(lighting0.preset, forecast0.expectedPreset, 'clear weather preset follows golden/day from forecast')
+  check('mood lighting publishes lighting.preset/sky/fog/tideOffset on diagnostics')
   await page.evaluate(() => document.fonts.ready)
   return page
 }
@@ -96,6 +112,17 @@ async function assertNoSpeechSaveKeys(page) {
     assert.ok(!(banned in save), `${banned} must not persist in the save blob`)
   }
 }
+
+async function assertLighting(page, { preset, tideOffset } = {}) {
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.lighting?.preset, null, { timeout: 15000 })
+  const lighting = await page.evaluate(() => window.__coastDiagnostics().lighting)
+  if (preset) assert.equal(lighting.preset, preset, `lighting.preset should be ${preset}`)
+  assert.ok(lighting.sky && lighting.fog, 'lighting.sky/fog must be present')
+  assert.equal(lighting.sky, lighting.fog, 'fog/sky should share the mood color on this pass')
+  if (tideOffset != null) assert.equal(lighting.tideOffset, tideOffset)
+  return lighting
+}
+
 async function waitWorldAction(page, type) {
   await page.waitForFunction((wanted) => window.__coastDiagnostics()?.worldAction?.type === wanted, type, { timeout: 15000 })
 }
@@ -283,9 +310,20 @@ try {
   report.restoredRender={calls:animals2.calls,triangles:animals2.triangles,actorCount:animals2.actors.length}
   check('restored habitat adds wildlife whose positions animate')
   // Recorded forecast changes the scene and the actual decision.
+  // Golden day without weather event (day 4 → golden, tideOffset 0.03).
+  await page.evaluate((key)=>{const g=JSON.parse(localStorage.getItem(key));g.day=4;g.event=null;localStorage.setItem(key,JSON.stringify(g))},saveKey)
+  await page.reload()
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.actors?.length >= 4)
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.lighting?.preset)
+  await assertLighting(page, { preset: 'golden', tideOffset: 0.03 })
+  check('golden forecast maps to lighting.preset golden with matching sky/fog/tideOffset')
+  // Storm overrides golden.
   await page.evaluate((key)=>{const g=JSON.parse(localStorage.getItem(key));g.day=25;g.event={id:'storm'};localStorage.setItem(key,JSON.stringify(g))},saveKey)
   await page.reload();await page.waitForSelector('.event-modal')
+  await page.waitForFunction(() => window.__coastDiagnostics?.()?.lighting?.preset)
   await shot(page,'desktop-storm')
+  await assertLighting(page, { preset: 'storm' })
+  check('storm weather maps to lighting.preset storm with matching sky/fog')
   await page.locator('.choice-list button').last().click()
   assert.equal((await state(page)).event,null)
   check('a saved weather event rehydrates and resolves')
