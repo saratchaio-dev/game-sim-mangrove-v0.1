@@ -956,14 +956,13 @@ function Crab({ position, seed = 0, plantCue = null, scale = 0.85, roam = 0.6, a
     group.current.userData.shoreCue = excited
     const step = alwaysAnimate ? delta : motionDue(state.clock.elapsedTime, delta)
     if (!step && !excited && !alwaysAnimate) return
-    const speed = alwaysAnimate ? 1.35 : (excited ? 2.4 : 1)
-    const spin = excited || alwaysAnimate ? 0.85 : 0.2
-    const claw = excited || alwaysAnimate ? 0.7 : 0.22
-    const t = state.clock.elapsedTime * (alwaysAnimate ? 1.1 : 0.4) + seed
-    group.current.rotation.y = Math.atan2(Math.cos(t) * roam, Math.sin(t) * roam * 0.55) + Math.sin(t * 2) * 0.15
-    if (claws.current) claws.current.rotation.z = Math.sin(state.clock.elapsedTime * (alwaysAnimate ? 9 : excited ? 7 : 3) + seed) * claw
+    const spin = excited || alwaysAnimate ? 0.55 : 0.2
+    const claw = excited || alwaysAnimate ? 0.45 : 0.22
+    const t = state.clock.elapsedTime * (alwaysAnimate ? 0.37 : 0.4) + seed
+    group.current.rotation.y = Math.atan2(Math.cos(t) * roam, Math.sin(t) * roam * 0.55) + Math.sin(t * 2) * 0.1
+    if (claws.current) claws.current.rotation.z = Math.sin(state.clock.elapsedTime * (alwaysAnimate ? 3 : excited ? 7 : 3) + seed) * claw
     group.current.position.x = position[0] + Math.sin(t) * roam
-    group.current.position.y = position[1] + (alwaysAnimate ? 0.06 + Math.abs(Math.sin(t * 4)) * 0.04 : 0)
+    group.current.position.y = position[1] + (alwaysAnimate ? 0.04 + Math.abs(Math.sin(t * 3)) * 0.02 : 0)
     group.current.position.z = position[2] + Math.cos(t * 0.85) * roam * 0.7
   })
 
@@ -993,25 +992,26 @@ function Crab({ position, seed = 0, plantCue = null, scale = 0.85, roam = 0.6, a
   )
 }
 
-function Fish({ position, color = '#ffd166', seed = 0 }) {
+function Fish({ position, color = '#ffd166', seed = 0, scale = 0.65, roam = 1.2, alwaysAnimate = false }) {
   const group = useRef()
   const tail = useRef()
   const motionDue = useMotionBudget(group, seed + 21)
 
   useFrame((state, delta) => {
     if (!group.current) return
-    const step = motionDue(state.clock.elapsedTime, delta)
-    if (!step) return
-    if (tail.current) tail.current.rotation.y = Math.sin(state.clock.elapsedTime * 7 + seed) * .35
-    const t = state.clock.elapsedTime * .55 + seed
-    group.current.position.x = position[0] + Math.sin(t) * 1.2
-    group.current.position.z = position[2] + Math.cos(t) * .55
-    group.current.rotation.y = Math.atan2(Math.sin(t) * .55, Math.cos(t) * 1.2)
-    group.current.position.y = position[1] + Math.sin(t * 2) * .025
+    const step = alwaysAnimate ? delta : motionDue(state.clock.elapsedTime, delta)
+    if (!step && !alwaysAnimate) return
+    const flap = alwaysAnimate ? 2.4 : 7
+    if (tail.current) tail.current.rotation.y = Math.sin(state.clock.elapsedTime * flap + seed) * (alwaysAnimate ? 0.28 : 0.35)
+    const t = state.clock.elapsedTime * (alwaysAnimate ? 0.37 : 0.55) + seed
+    group.current.position.x = position[0] + Math.sin(t) * roam
+    group.current.position.z = position[2] + Math.cos(t) * roam * 0.45
+    group.current.rotation.y = Math.atan2(Math.sin(t) * roam * 0.45, Math.cos(t) * roam)
+    group.current.position.y = position[1] + Math.sin(t * 2) * (alwaysAnimate ? 0.04 : 0.025)
   })
 
   return (
-    <group name={`coast-fish-${seed}`} ref={group} position={position} scale={0.65}>
+    <group name={`coast-fish-${seed}`} ref={group} position={position} scale={scale}>
       <mesh scale={[1.5, 0.64, 0.64]}>
         <sphereGeometry args={[0.23, 8, 6]} />
         <meshStandardMaterial color={color} roughness={0.62} transparent opacity={0.86} />
@@ -1024,13 +1024,14 @@ function Fish({ position, color = '#ffd166', seed = 0 }) {
   )
 }
 
-function Bird({ seed = 0, plantCue = null }) {
+function Bird({ seed = 0, plantCue = null, center = null, scale = 0.7, roam = 5.5, alwaysAnimate = false, height = 7.2 }) {
   const group = useRef()
   const leftWing = useRef()
   const rightWing = useRef()
   const lastCue = useRef(null)
   const cueUntil = useRef(0)
   const motionDue = useMotionBudget(group, seed + 31)
+  const [cx, , cz] = center || [0, 0, 0.8]
 
   useFrame((state, delta) => {
     if (plantCue != null && plantCue !== lastCue.current) {
@@ -1039,24 +1040,24 @@ function Bird({ seed = 0, plantCue = null }) {
     }
     const excited = state.clock.elapsedTime < cueUntil.current
     if (group.current) group.current.userData.shoreCue = excited
-    const step = motionDue(state.clock.elapsedTime, delta)
-    if (!step && !excited) return
-    const t = state.clock.elapsedTime * 0.3 + seed
+    const step = alwaysAnimate ? delta : motionDue(state.clock.elapsedTime, delta)
+    if (!step && !excited && !alwaysAnimate) return
+    const t = state.clock.elapsedTime * (alwaysAnimate ? 0.37 : 0.3) + seed
     if (group.current) {
-      const radius = 5.5 + seed * 0.7
-      group.current.position.x = Math.cos(t) * radius
-      group.current.position.z = Math.sin(t) * radius + 0.8
-      group.current.position.y = 7.2 + Math.sin(t * 2) * 0.35 + (excited ? 0.25 : 0)
+      const radius = alwaysAnimate ? roam : (5.5 + seed * 0.7)
+      group.current.position.x = cx + Math.cos(t) * radius
+      group.current.position.z = cz + Math.sin(t) * radius
+      group.current.position.y = height + Math.sin(t * 2) * (alwaysAnimate ? 0.2 : 0.35) + (excited ? 0.25 : 0)
       group.current.rotation.y = -t + Math.PI / 2
     }
-    const flap = excited ? 9.5 : 5.2
-    const amp = excited ? 0.55 : 0.34
+    const flap = alwaysAnimate ? 3.2 : (excited ? 9.5 : 5.2)
+    const amp = alwaysAnimate ? 0.28 : (excited ? 0.55 : 0.34)
     if (leftWing.current) leftWing.current.rotation.z = 1.05 + Math.sin(state.clock.elapsedTime * flap) * amp
     if (rightWing.current) rightWing.current.rotation.z = -1.05 - Math.sin(state.clock.elapsedTime * flap) * amp
   })
 
   return (
-    <group name={`coast-bird-${seed}`} ref={group} scale={0.7}>
+    <group name={`coast-bird-${seed}`} ref={group} scale={scale}>
       <mesh scale={[1.4, 0.5, 0.58]}>
         <sphereGeometry args={[0.13, 8, 6]} />
         <meshStandardMaterial color="#f8f4dd" roughness={0.7} />
@@ -1115,14 +1116,20 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
     () => plots.filter((plot) => plot.species && !plot.dead),
     [plots],
   )
+  // Match crab pacing after size/speed cut (~1/3 of the previous loud plot crabs).
+  const plotScale = 0.52
+  const plotRoam = 1.15
   const crabs = discovered.includes('crab')
     ? livingPlots.slice(0, Math.min(4, livingPlots.length))
     : []
   const fish = discovered.includes('fish')
-    ? livingPlots.filter((plot) => plot.tide === 'สูง' || plot.tide === 'กลาง').slice(0, Math.min(3, livingPlots.length))
+    ? livingPlots.filter((plot) => plot.tide === 'สูง' || plot.tide === 'กลาง' || plot.tide === 'ต่ำ').slice(0, Math.min(4, livingPlots.length))
     : []
   const birds = discovered.includes('bird')
-    ? livingPlots.filter((plot) => plot.age >= 4).slice(0, Math.min(2, livingPlots.length))
+    ? livingPlots.slice(0, Math.min(3, livingPlots.length))
+    : []
+  const fireflyPlots = discovered.includes('firefly')
+    ? livingPlots.filter((plot) => plot.species === 'sonneratia' || plot.age >= 4).slice(0, Math.min(3, livingPlots.length))
     : []
 
   return (
@@ -1135,8 +1142,8 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
             position={[x + 0.85 + (index % 2) * 0.25, y + 0.12, z + 0.7]}
             seed={plot.id + 40}
             plantCue={plantCue}
-            scale={1.55}
-            roam={1.15}
+            scale={plotScale}
+            roam={plotRoam}
             alwaysAnimate
             busy
           />
@@ -1147,15 +1154,45 @@ function PlotWildlife({ plots, discovered = [], plantCue = null }) {
         return (
           <Fish
             key={`plot-fish-${plot.id}`}
-            position={[x - 0.2, y - 0.55, z - 0.9]}
+            position={[x - 0.15, y - 0.35, z - 0.55]}
             color={['#ffd166', '#88e0dd', '#ff8d70'][index % 3]}
             seed={plot.id * 0.7}
+            scale={plotScale}
+            roam={plotRoam}
+            alwaysAnimate
           />
         )
       })}
-      {birds.map((plot, index) => (
-        <Bird key={`plot-bird-${plot.id}`} seed={plot.id * 0.9 + index} plantCue={plantCue} />
-      ))}
+      {birds.map((plot, index) => {
+        const [x, y, z] = plotPosition(plot.id)
+        return (
+          <Bird
+            key={`plot-bird-${plot.id}`}
+            seed={plot.id * 0.9 + index}
+            plantCue={plantCue}
+            center={[x, y, z]}
+            scale={plotScale}
+            roam={plotRoam}
+            height={y + 1.35}
+            alwaysAnimate
+          />
+        )
+      })}
+      {fireflyPlots.map((plot) => {
+        const [x, y, z] = plotPosition(plot.id)
+        return (
+          <Sparkles
+            key={`plot-firefly-${plot.id}`}
+            position={[x, y + 1.1, z]}
+            count={14}
+            scale={[1.6, 1.2, 1.6]}
+            size={2.4}
+            speed={0.22}
+            color="#f6ec87"
+            opacity={0.9}
+          />
+        )
+      })}
     </group>
   )
 }
