@@ -9,7 +9,7 @@ import {
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { SceneryBatch, GrassPatch } from './SceneryBatch.jsx'
-import { wildlifePresence, undergrowthItems, protectionFlagItems } from './shore-wildlife.js'
+import { wildlifePresence, undergrowthItems, protectionFlagItems, plotWildlifeForDiscovery } from './shore-wildlife.js'
 import { useMotionBudget } from './useMotionBudget.js'
 import { WorldResources, useWorldResources } from './WorldResources.jsx'
 import { WorldPerformance, useDeviceQuality } from './WorldPerformance.jsx'
@@ -1071,12 +1071,17 @@ function Bird({ seed = 0, plantCue = null }) {
   )
 }
 
-function Wildlife({ plots, communityLevel, habitatStage = 0, plantCue = null }) {
+function Wildlife({ plots, communityLevel, habitatStage = 0, plantCue = null, discovered = [] }) {
   const living = plots.filter((plot) => plot.species && !plot.dead).length
   const mature = plots.filter((plot) => plot.species && !plot.dead && plot.age >= 6).length
-  const { crabs: crabCount, fish: fishCount, birds: birdCount } = wildlifePresence({
+  const base = wildlifePresence({
     living, mature, stage: habitatStage, communityLevel,
   })
+  const gate = plotWildlifeForDiscovery(discovered)
+  // Empty journal → no fauna spam; discovered ids unlock / boost near living plots.
+  const crabCount = gate.showCrabs ? Math.max(living > 0 ? 1 : 0, base.crabs) : 0
+  const fishCount = gate.showFish ? Math.max(living > 0 ? 1 : 0, base.fish) : 0
+  const birdCount = gate.showBirds ? Math.max(mature > 0 || living > 0 ? 1 : 0, base.birds) : 0
 
   return (
     <group>
@@ -1336,6 +1341,8 @@ function WorldScene({ plots, selectedPlot, activeSpecies, onPlotClick, upgrades,
     : action?.type === 'patrol' ? [1, .48, -9.4] : null, [action])
   const forecast = useMemo(() => forecastFor(day), [day])
   const golden = forecast.golden
+  const discovery = plotWildlifeForDiscovery(discovered)
+  const showFireflies = Boolean(fireflies && discovery.showFireflies)
 
   return (
     <>

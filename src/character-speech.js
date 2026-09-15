@@ -58,3 +58,7 @@ export function createSpeech(speaker, text, actionId) {
     id: `${actionId}-${Date.now()}`,
   }
 }
+
+export function maliSpeechForTomorrowWait() {
+  return 'พรุ่งนี้มีงานรอที่อ่าว — เปิดภาคสนามแล้วลุยต่อได้เลย'
+}

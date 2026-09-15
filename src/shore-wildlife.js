@@ -49,3 +49,14 @@ export function protectionFlagItems(active) {
     })),
   }
 }
+
+/** Gate plot fauna by journal discovery ids (crab/fish/bird/firefly). */
+export function plotWildlifeForDiscovery(discovered = []) {
+  const ids = Array.isArray(discovered) ? discovered : []
+  return {
+    showCrabs: ids.includes('crab'),
+    showFish: ids.includes('fish'),
+    showBirds: ids.includes('bird'),
+    showFireflies: ids.includes('firefly'),
+  }
+}

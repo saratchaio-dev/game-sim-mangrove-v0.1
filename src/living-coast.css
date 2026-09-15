@@ -127,6 +127,9 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
 .day-report strong { color: #38886e; font-size: 25px; margin: 4px 0; }
 .day-report strong span { font-size: 10px; }
 .day-report p { font-size: 10px; margin: 0; color: #617a5c; }
+.day-report-cliff { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e4ecd8; display: flex; flex-direction: column; gap: 3px; }
+.day-report-cliff-forecast { font-size: 10px; color: #4a6b58; font-weight: 600; }
+.day-report-cliff-contract { font-size: 10px; color: #7a6540; }
 .photo-mode .game-ui { display: none; }
 .photo-mode-chrome {
   position: absolute; inset: 0; z-index: 24; pointer-events: none;

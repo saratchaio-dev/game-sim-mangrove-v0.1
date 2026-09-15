@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { wildlifePresence, undergrowthItems, protectionFlagItems } from '../src/shore-wildlife.js'
+import { wildlifePresence, undergrowthItems, protectionFlagItems, plotWildlifeForDiscovery } from '../src/shore-wildlife.js'
 import { readFileSync } from 'node:fs'
 
 test('wildlife presence scales with living trees and habitat stage', () => {
@@ -37,4 +37,19 @@ test('SceneryBatch skips empty instances and keeps static draw usage', () => {
   assert.match(source, /matrixAutoUpdate = false/)
   assert.match(source, /StaticDrawUsage/)
   assert.match(source, /if \(!mesh\) return null/)
+})
+
+test('plotWildlifeForDiscovery gates fauna by journal ids', () => {
+  assert.deepEqual(plotWildlifeForDiscovery([]), {
+    showCrabs: false, showFish: false, showBirds: false, showFireflies: false,
+  })
+  assert.deepEqual(plotWildlifeForDiscovery(['crab']), {
+    showCrabs: true, showFish: false, showBirds: false, showFireflies: false,
+  })
+  assert.deepEqual(plotWildlifeForDiscovery(['crab', 'fish', 'bird', 'firefly']), {
+    showCrabs: true, showFish: true, showBirds: true, showFireflies: true,
+  })
+  assert.deepEqual(plotWildlifeForDiscovery(undefined), {
+    showCrabs: false, showFish: false, showBirds: false, showFireflies: false,
+  })
 })

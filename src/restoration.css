@@ -100,6 +100,8 @@
 .achievement-grid small,.achievement-grid em { font-size: 10px; display: block; font-style: normal; color: #788372; line-height: 1.6; }
 .next-tide-preview,.event-forecast-impact { padding: 16px; margin: 17px 0; border-radius: 10px; background: #e8eddd; }
 .next-tide-preview span { display: block; margin-top: 8px; font-size: 12px; }
+.next-tide-preview .day-plan-contract-days { display: block; margin-top: 6px; font-size: 12px; font-style: normal; color: #7a6540; font-weight: 600; }
+.day-plan-modal .next-tide-preview[data-forecast-tomorrow] b { color: #315345; }
 .deadline-warning { background: #f6e3bd; color: #885724; padding: 12px; border-radius: 8px; }
 .day-plan-modal .secondary-game-button { width: 100%; margin-top: 10px; }
 .character-name { background: #f9f4dfea; color: #315345; padding: 8px 12px; border-radius: 12px; white-space: nowrap; box-shadow: 0 4px 10px #12382c25; text-align: center; font-family: "Noto Sans Thai",system-ui,sans-serif; }

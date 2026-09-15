@@ -8,6 +8,7 @@ import {
   maliSpeechForFirstContract,
   maliSpeechForFirstPerfect,
   maliSpeechForFirstCrab,
+  maliSpeechForTomorrowWait,
   nonSpeechForClean,
   nonSpeechForPatrol,
   nonSpeechForForecastPrep,
@@ -83,3 +84,11 @@ test('createSpeech returns plain ephemeral data with no save coupling', () => {
   assert.equal(non.speaker, 'non')
   assert.match(non.id, /^patrol-\d+$/)
 })
+
+test('tomorrow-wait Mali tip is a fixed Thai string', () => {
+  assert.equal(
+    maliSpeechForTomorrowWait(),
+    'พรุ่งนี้มีงานรอที่อ่าว — เปิดภาคสนามแล้วลุยต่อได้เลย',
+  )
+})
+
