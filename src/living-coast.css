@@ -212,6 +212,14 @@ button:focus-visible { outline: 3px solid #ecac42; outline-offset: 3px; }
 .wildlife-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 24px; }
 .wildlife-grid article { border: 1px dashed #cbd6bf; border-radius: 17px; padding: 16px 8px; background: #eff2e5; color: #89957e; }
 .wildlife-grid article.discovered { border-style: solid; background: #f5f0d9; color: #426d51; border-color: #e4d5a5; }
+.wildlife-grid article.wildlife-drip-new {
+  box-shadow: 0 0 0 2px #e8c86a, 0 8px 18px rgba(157, 128, 61, 0.28);
+  animation: wildlife-drip-pulse 1.1s ease-in-out 2;
+}
+@keyframes wildlife-drip-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
 .animal-art { display: grid; place-items: center; height: 80px; font-size: 42px; }
 .wildlife-grid small { display: block; font-size: 9px; }
 .wildlife-grid h3 { font-size: 13px; margin: 10px 0; }

@@ -3,7 +3,7 @@ import { fieldwork } from './coast-progression.js'
 
 export const freshExpedition = () => ({
   crewDay: 0, used: [], contract: null, completed: 0, streak: 0, bestStreak: 0,
-  offerDay: 0, protectionDay: 0, cleanDay: 0, lastOutcome: null,
+  offerDay: 0, protectionDay: 0, cleanDay: 0, dripDay: 0, lastOutcome: null,
   counters: { clean: 0, care: 0, patrol: 0, survey: 0 }, achievements: [],
 })
 const alive = (g) => g.plots.filter((p) => p.species && !p.dead)
@@ -146,7 +146,7 @@ export function restoreExpedition(parsed, day) {
   const next = freshExpedition()
   const integer = (v, max = 1e7) => Number.isFinite(v) ? Math.min(max, Math.max(0, Math.floor(v))) : 0
   if (!parsed || typeof parsed !== 'object') return next
-  for (const key of ['crewDay', 'offerDay', 'cleanDay']) next[key] = integer(parsed[key], day)
+  for (const key of ['crewDay', 'offerDay', 'cleanDay', 'dripDay']) next[key] = integer(parsed[key], day)
   next.protectionDay = integer(parsed.protectionDay, day + 5)
   for (const key of ['completed', 'streak', 'bestStreak']) next[key] = integer(parsed[key])
   next.used = Array.isArray(parsed.used) ? [...new Set(parsed.used.filter((k) => CREW[k]))].slice(0, 2) : []

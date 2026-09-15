@@ -62,3 +62,12 @@ export function createSpeech(speaker, text, actionId) {
 export function maliSpeechForTomorrowWait() {
   return 'พรุ่งนี้มีงานรอที่อ่าว — เปิดภาคสนามแล้วลุยต่อได้เลย'
 }
+
+export function ingSpeechForWildlifeDrip(name) {
+  return `เจอ${name}แล้ว! บันทึกลงสมุดสัตว์นะ`
+}
+
+export function nonSpeechForWildlifeDrip(name) {
+  return `ดูสิ — ${name}! อ่าวมีชีวิตขึ้นอีกแล้ว`
+}
+
